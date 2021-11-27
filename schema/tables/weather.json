@@ -1,0 +1,12 @@
+{
+    "id": 1,
+    "date": "string",
+    "temperature": 1,
+    "feels_like": 1,
+    "precipitation": 1.00,
+    "wind": 10.0,
+    "wind_gust": 10.0,
+    "wind_direction": "string",
+    "humidity": 1,
+    "cloud_cover": 1
+}
