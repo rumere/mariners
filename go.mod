@@ -1,4 +1,4 @@
-module weather
+module mariners
 
 go 1.17
 

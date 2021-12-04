@@ -11,20 +11,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"mariners/db"
 	"math"
 	"net/http"
+	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 // Database connection parameters (secrets)
-const (
-	username = "root"
-	password = "WD37wn^R##jG"
-	hostname = "127.0.0.1:3306"
-	dbname   = "mplinksters"
-)
 
 // Weather is a []struct that can store the unmarshalled results of the accuweather current conditions API
 type Weather []struct {
@@ -428,10 +424,16 @@ func getWeather(weather *Weather) error {
 }
 
 func dsn(dbName string) string {
+	username := os.Getenv("dbuser")
+	password := os.Getenv("dbpassword")
+	hostname := os.Getenv("dbhost")
+
 	return fmt.Sprintf("%s:%s@tcp(%s)/%s", username, password, hostname, dbName)
 }
 
 func dbConnection() (*sql.DB, error) {
+	dbname := os.Getenv("dbname")
+
 	db, err := sql.Open("mysql", dsn(dbname))
 	if err != nil {
 		return nil, err
@@ -487,7 +489,7 @@ func main() {
 	}
 	fmt.Printf("Retrieved weather fo date %s\n", weather[0].LocalObservationDateTime)
 
-	db, err := dbConnection()
+	db, err := db.DBConnection()
 	if err != nil {
 		log.Fatal(err)
 	}
