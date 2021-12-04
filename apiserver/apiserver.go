@@ -8,8 +8,9 @@ import (
 	"net/http"
 	"time"
 
+	"src/github.com/rumere/mariners/player"
+
 	"github.com/gorilla/mux"
-	"github.com/rumere/mariners/player"
 )
 
 func PlayerHandler(w http.ResponseWriter, r *http.Request) {
