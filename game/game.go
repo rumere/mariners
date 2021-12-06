@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"mariners/db"
 	"time"
 )
@@ -29,6 +30,80 @@ func AddGame(g *Game) error {
 	}
 
 	return nil
+}
+
+func GetGame(id int64, g *Game) error {
+	db, err := db.DBConnection()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	err = getGame(db, id, g)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetGames() (Games, error) {
+	db, err := db.DBConnection()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	g, err := getGames(db)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("%#v", g)
+
+	return g, nil
+}
+
+func getGame(db *sql.DB, id int64, g *Game) error {
+	query := "SELECT idgame, idweather, date FROM game WHERE idgame=?"
+
+	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
+
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	err := db.QueryRowContext(ctx, query, id).Scan(&g.ID, &g.WeatherID, &g.Date)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%#v", g)
+
+	return nil
+}
+
+func getGames(db *sql.DB) (Games, error) {
+	g := make(Games, 0)
+
+	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number FROM player"
+
+	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
+
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	rows, err := db.QueryContext(ctx, query)
+	if err != nil {
+		return g, err
+	}
+
+	for rows.Next() {
+		var game Game
+		if err := rows.Scan(&game.ID, &game.WeatherID, &game.Date); err != nil {
+			return g, err
+		}
+		g = append(g, game)
+	}
+
+	return g, nil
 }
 
 func writeGame(db *sql.DB, g *Game) error {

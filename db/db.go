@@ -17,7 +17,7 @@ func getEnv(key, fallback string) string {
 
 func dsn(dbName string) string {
 	username := getEnv("dbuser", "admin")
-	password := getEnv("dbpassword", "WD37wn^R##jG")
+	password := getEnv("dbpassword", "")
 	hostname := getEnv("dbhost", "db.mplinksters.club:3306")
 
 	return fmt.Sprintf("%s:%s@tcp(%s)/%s", username, password, hostname, dbName)

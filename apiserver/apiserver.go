@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -46,6 +47,20 @@ func RespondWithPlayers(w http.ResponseWriter, p []player.Player) error {
 }
 
 func RespondWithGame(w http.ResponseWriter, g game.Game) error {
+	j, err := json.MarshalIndent(g, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(j)
+	fmt.Fprintf(w, "\n")
+
+	return nil
+}
+
+func RespondWithGames(w http.ResponseWriter, g []game.Game) error {
 	j, err := json.MarshalIndent(g, "", "  ")
 	if err != nil {
 		return err
@@ -188,7 +203,61 @@ func AddGameHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetGameHandler(w http.ResponseWriter, r *http.Request) {
+	strid := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(strid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	g := game.Game{}
+
+	err = game.GetGame(int64(id), &g)
+	switch {
+	case err == sql.ErrNoRows:
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	case err != nil:
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	default:
+		err = RespondWithGame(w, g)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func GetGamesHandler(w http.ResponseWriter, r *http.Request) {
+	g, err := game.GetGames()
+	switch {
+	case err == sql.ErrNoRows:
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	case err != nil:
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	default:
+		err = RespondWithGames(w, g)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
+
 func main() {
+	listenport := getEnv("listenport", "8080")
+
 	r := mux.NewRouter()
 
 	r.HandleFunc("/player", AddPlayerHandler).Methods("POST")
@@ -198,11 +267,12 @@ func main() {
 	r.HandleFunc("/player/{id}", DeletePlayerHandler).Methods("DELETE")
 
 	r.HandleFunc("/game", AddGameHandler).Methods("POST")
+	r.HandleFunc("/game/{id}", AddGameHandler).Methods("GET")
 	http.Handle("/", r)
 
 	srv := &http.Server{
 		Handler:      r,
-		Addr:         "127.0.0.1:8000",
+		Addr:         fmt.Sprintf(":%s", listenport),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
