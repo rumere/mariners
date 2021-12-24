@@ -1,32 +1,100 @@
 package db
 
+// Use this code snippet in your app.
+// If you need more information about configurations or implementing the sample code, visit the AWS docs:
+// https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/setting-up.html
+
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
-	"os"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/secretsmanager"
 )
 
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return fallback
+type dbUser struct {
+	Username             string `json:"username"`
+	Password             string `json:"password"`
+	Engine               string `json:"engine"`
+	Host                 string `json:"host"`
+	Port                 int    `json:"port"`
+	DbInstanceIdentifier string `json:"dbInstanceIdentifier"`
 }
 
-func dsn(dbName string) string {
-	username := getEnv("dbuser", "admin")
-	password := getEnv("dbpassword", "")
-	hostname := getEnv("dbhost", "db.mplinksters.club:3306")
+func getDSN() string {
+	secretName := "mplinkstersdb"
+	region := "us-west-1"
 
-	return fmt.Sprintf("%s:%s@tcp(%s)/%s", username, password, hostname, dbName)
+	//Create a Secrets Manager client
+	sess, err := session.NewSession()
+	if err != nil {
+		// Handle session creation error
+		fmt.Println(err.Error())
+		return ""
+	}
+	svc := secretsmanager.New(sess,
+		aws.NewConfig().WithRegion(region))
+	input := &secretsmanager.GetSecretValueInput{
+		SecretId:     aws.String(secretName),
+		VersionStage: aws.String("AWSCURRENT"), // VersionStage defaults to AWSCURRENT if unspecified
+	}
+
+	// In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
+	// See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+
+	result, err := svc.GetSecretValue(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case secretsmanager.ErrCodeDecryptionFailure:
+				// Secrets Manager can't decrypt the protected secret text using the provided KMS key.
+				fmt.Println(secretsmanager.ErrCodeDecryptionFailure, aerr.Error())
+
+			case secretsmanager.ErrCodeInternalServiceError:
+				// An error occurred on the server side.
+				fmt.Println(secretsmanager.ErrCodeInternalServiceError, aerr.Error())
+
+			case secretsmanager.ErrCodeInvalidParameterException:
+				// You provided an invalid value for a parameter.
+				fmt.Println(secretsmanager.ErrCodeInvalidParameterException, aerr.Error())
+
+			case secretsmanager.ErrCodeInvalidRequestException:
+				// You provided a parameter value that is not valid for the current state of the resource.
+				fmt.Println(secretsmanager.ErrCodeInvalidRequestException, aerr.Error())
+
+			case secretsmanager.ErrCodeResourceNotFoundException:
+				// We can't find the resource that you asked for.
+				fmt.Println(secretsmanager.ErrCodeResourceNotFoundException, aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
+		}
+		return ""
+	}
+
+	// Decrypts secret using the associated KMS CMK.
+	// Depending on whether the secret is a string or binary, one of these fields will be populated.
+	secretString := *result.SecretString
+
+	// Your code goes here.
+	u := dbUser{}
+	err = json.Unmarshal([]byte(secretString), &u)
+	if err != nil {
+		fmt.Println(err.Error())
+		return ""
+	}
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", u.Username, u.Password, u.Host, u.Port, u.DbInstanceIdentifier)
 }
 
 func DBConnection() (*sql.DB, error) {
-	dbname := getEnv("dbname", "mplinksters")
-
-	db, err := sql.Open("mysql", dsn(dbname))
+	db, err := sql.Open("mysql", getDSN())
 	if err != nil {
 		return nil, err
 	}

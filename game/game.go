@@ -84,7 +84,7 @@ func getGame(db *sql.DB, id int64, g *Game) error {
 func getGames(db *sql.DB) (Games, error) {
 	g := make(Games, 0)
 
-	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number FROM player"
+	query := "SELECT idgame, idweather, date FROM weather"
 
 	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
 

@@ -1,4 +1,4 @@
-package main
+package weather
 
 // weather is a daemon that will download weather data from accuweather once daily at:
 //	12 PM on Sunday and Saturday
@@ -14,7 +14,6 @@ import (
 	"mariners/db"
 	"math"
 	"net/http"
-	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -22,8 +21,8 @@ import (
 
 // Database connection parameters (secrets)
 
-// Weather is a []struct that can store the unmarshalled results of the accuweather current conditions API
-type Weather []struct {
+// accuWeather is a []struct that can store the unmarshalled results of the accuweather current conditions API
+type accuWeather []struct {
 	LocalObservationDateTime string      `json:"LocalObservationDateTime"`
 	EpochTime                int         `json:"EpochTime"`
 	WeatherText              string      `json:"WeatherText"`
@@ -404,7 +403,153 @@ type Weather []struct {
 	Link       string `json:"Link"`
 }
 
-func getWeather(weather *Weather) error {
+type Weather struct {
+	ID            int     `json:"id"`
+	Date          string  `json:"date"`
+	Temperature   int     `json:"temperature"`
+	FeelsLike     int     `json:"feels_like"`
+	Precipitation float64 `json:"precipitation"`
+	Wind          float64 `json:"wind"`
+	WindGust      float64 `json:"wind_gust"`
+	WindDirection string  `json:"wind_direction"`
+	Humidity      int     `json:"humidity"`
+	CloudCover    int     `json:"cloud_cover"`
+}
+
+func GetWeather(id int64, w *Weather) error {
+	db, err := db.DBConnection()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	err = getWeather(db, id, w)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetWeatherByDate(d string, w *Weather) error {
+	db, err := db.DBConnection()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	err = getWeatherByDate(db, d, w)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getWeather(db *sql.DB, id int64, w *Weather) error {
+	query := fmt.Sprintf(
+		"SELECT "+
+			"idweather, "+
+			"date, "+
+			"temperature, "+
+			"feels_like, "+
+			"precipitation, "+
+			"wind, "+
+			"wind_gust, "+
+			"wind_direction, "+
+			"humidity, "+
+			"cloudcover "+
+			"FROM weather WHERE idweather=%d",
+		id)
+
+	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
+
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	err := db.QueryRowContext(ctx, query).Scan(
+		&w.ID,
+		&w.Date,
+		&w.Temperature,
+		&w.FeelsLike,
+		&w.Precipitation,
+		&w.Wind,
+		&w.WindGust,
+		&w.WindDirection,
+		&w.Humidity,
+		&w.CloudCover)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%#v", w)
+
+	return nil
+}
+
+func getWeatherByDate(db *sql.DB, d string, w *Weather) error {
+	t, err := time.Parse("2006-01-02", d)
+	if err != nil {
+		return err
+	}
+	s := fmt.Sprintf("\"%d-%d-%d 00:00:00\"", t.Year(), t.Month(), t.Day())
+	f := fmt.Sprintf("\"%d-%d-%d 23:59:59\"", t.Year(), t.Month(), t.Day())
+	query := fmt.Sprintf(
+		"SELECT "+
+			"idweather, "+
+			"date, "+
+			"temperature, "+
+			"feels_like, "+
+			"precipitation, "+
+			"wind, "+
+			"wind_gust, "+
+			"wind_direction, "+
+			"humidity, "+
+			"cloudcover "+
+			"FROM weather WHERE "+
+			"date>=%s AND date<=%s",
+		s, f)
+
+	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
+
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+
+	err = db.QueryRowContext(ctx, query).Scan(
+		&w.ID,
+		&w.Date,
+		&w.Temperature,
+		&w.FeelsLike,
+		&w.Precipitation,
+		&w.Wind,
+		&w.WindGust,
+		&w.WindDirection,
+		&w.Humidity,
+		&w.CloudCover)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%#v", w)
+
+	return nil
+}
+
+func AddWeather() error {
+	db, err := db.DBConnection()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	err = writeWeather(db)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getAccuWeather(aw *accuWeather) error {
 	resp, err := http.Get("http://dataservice.accuweather.com/currentconditions/v1/332128?apikey=put8mfXawbPRMEXpDunTjZrKWJCw4AeE&details=true")
 	if err != nil {
 		return err
@@ -415,7 +560,7 @@ func getWeather(weather *Weather) error {
 		return err
 	}
 
-	err = json.Unmarshal([]byte(body), weather)
+	err = json.Unmarshal([]byte(body), aw)
 	if err != nil {
 		return err
 	}
@@ -423,47 +568,23 @@ func getWeather(weather *Weather) error {
 	return nil
 }
 
-func dsn(dbName string) string {
-	username := os.Getenv("dbuser")
-	password := os.Getenv("dbpassword")
-	hostname := os.Getenv("dbhost")
-
-	return fmt.Sprintf("%s:%s@tcp(%s)/%s", username, password, hostname, dbName)
-}
-
-func dbConnection() (*sql.DB, error) {
-	dbname := os.Getenv("dbname")
-
-	db, err := sql.Open("mysql", dsn(dbname))
+func writeWeather(db *sql.DB) error {
+	aw := accuWeather{}
+	err := getAccuWeather(&aw)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	db.SetMaxOpenConns(20)
-	db.SetMaxIdleConns(20)
-	db.SetConnMaxLifetime(time.Minute * 5)
-
-	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelfunc()
-	err = db.PingContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
-}
-
-func writeWeather(db *sql.DB, weather Weather) error {
 	query := fmt.Sprintf("INSERT INTO weather VALUES (NULL, \"%s\", %d, %d, %.2f, %.1f, %.1f, \"%s\", %d, %d)",
-		weather[0].LocalObservationDateTime,
-		int64(math.Round(weather[0].Temperature.Imperial.Value)),
-		int64(math.Round(weather[0].RealFeelTemperature.Imperial.Value)),
-		weather[0].Precip1Hr.Imperial.Value,
-		weather[0].Wind.Speed.Imperial.Value,
-		weather[0].WindGust.Speed.Imperial.Value,
-		weather[0].Wind.Direction.English,
-		weather[0].RelativeHumidity,
-		weather[0].CloudCover)
+		aw[0].LocalObservationDateTime,
+		int64(math.Round(aw[0].Temperature.Imperial.Value)),
+		int64(math.Round(aw[0].RealFeelTemperature.Imperial.Value)),
+		aw[0].Precip1Hr.Imperial.Value,
+		aw[0].Wind.Speed.Imperial.Value,
+		aw[0].WindGust.Speed.Imperial.Value,
+		aw[0].Wind.Direction.English,
+		aw[0].RelativeHumidity,
+		aw[0].CloudCover)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
@@ -479,26 +600,4 @@ func writeWeather(db *sql.DB, weather Weather) error {
 	fmt.Printf("Rows affected by insert: %d\n", rows)
 
 	return nil
-}
-
-func main() {
-	weather := Weather{}
-	err := getWeather(&weather)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("Retrieved weather fo date %s\n", weather[0].LocalObservationDateTime)
-
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-	fmt.Printf("Successfully connected to database\n")
-
-	err = writeWeather(db, weather)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("Weather inserted to database\n")
 }
