@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -26,7 +27,7 @@ type dbUser struct {
 	DbInstanceIdentifier string `json:"dbInstanceIdentifier"`
 }
 
-func getDSN() string {
+func getDSNAWS() string {
 	secretName := "mplinkstersdb"
 	region := "us-west-1"
 
@@ -93,10 +94,38 @@ func getDSN() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", u.Username, u.Password, u.Host, u.Port, u.DbInstanceIdentifier)
 }
 
+func getDSNEnv() string {
+	username := getEnv("MPDBUSER", "root")
+	password := getEnv("MPDBPASSWORD", "")
+	host := getEnv("MPDBHOST", "localhost")
+	port := getEnv("MPDBPORT", "3306")
+	dbinstance := getEnv("MPDBINSTANCE", "mplinksters")
+
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", username, password, host, port, dbinstance)
+}
+
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
+
 func DBConnection() (*sql.DB, error) {
-	db, err := sql.Open("mysql", getDSN())
-	if err != nil {
-		return nil, err
+	dblocation := getEnv("MPDB", "AWS")
+	var db *sql.DB
+	var err error
+
+	if dblocation == "AWS" {
+		db, err = sql.Open("mysql", getDSNAWS())
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		db, err = sql.Open("mysql", getDSNEnv())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	db.SetMaxOpenConns(20)

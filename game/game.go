@@ -13,6 +13,7 @@ type Game struct {
 	ID        int64  `json:"id"`
 	WeatherID int64  `json:"weather_id"`
 	Date      string `json:"date"`
+	NinthTee  string `json:"ninth_tee"`
 }
 
 type Games []Game
@@ -43,6 +44,54 @@ func GetGame(id int64, g *Game) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func GetGameByDate(d string, g *Game) error {
+	db, err := db.DBConnection()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	err = getGameByDate(db, d, g)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getGameByDate(db *sql.DB, d string, g *Game) error {
+	t, err := time.Parse("2006-01-02", d)
+	if err != nil {
+		return err
+	}
+	s := fmt.Sprintf("\"%d-%d-%d 00:00:00\"", t.Year(), t.Month(), t.Day())
+	f := fmt.Sprintf("\"%d-%d-%d 23:59:59\"", t.Year(), t.Month(), t.Day())
+	query := fmt.Sprintf(
+		"SELECT "+
+			"idgame, "+
+			"idweather, "+
+			"date, "+
+			"ninth_tee"+
+			"FROM game WHERE "+
+			"date>=%s AND date<=%s",
+		s, f)
+
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	err = db.QueryRowContext(ctx, query).Scan(
+		&g.ID,
+		&g.Date,
+		&g.WeatherID,
+		&g.NinthTee)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%#v", g)
 
 	return nil
 }
@@ -121,7 +170,7 @@ func writeGame(db *sql.DB, g *Game) error {
 
 	fmt.Printf("%#v\n", g)
 
-	query = fmt.Sprintf("INSERT INTO game (idgame, idweather, date) VALUES (NULL, %d, \"%s\");\n",
+	query = fmt.Sprintf("INSERT INTO game (idgame, idweather, date, ninth_tee) VALUES (NULL, %d, \"%s\");\n",
 		g.WeatherID,
 		g.Date)
 

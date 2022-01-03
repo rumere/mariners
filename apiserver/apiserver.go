@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"mariners/team"
 	"net/http"
 	"os"
 	"strconv"
@@ -63,6 +64,20 @@ func RespondWithPlayers(w http.ResponseWriter, p []player.Player) error {
 
 func RespondWithGame(w http.ResponseWriter, g game.Game) error {
 	j, err := json.MarshalIndent(g, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(j)
+	fmt.Fprintf(w, "\n")
+
+	return nil
+}
+
+func RespondWithTeam(w http.ResponseWriter, t team.Team) error {
+	j, err := json.MarshalIndent(t, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -257,6 +272,27 @@ func GetWeatherByDateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetGameByDateHandler(w http.ResponseWriter, r *http.Request) {
+	sdate := mux.Vars(r)["date"]
+
+	g := game.Game{}
+	err := game.GetGameByDate(sdate, &g)
+	switch {
+	case err == sql.ErrNoRows:
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	case err != nil:
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	default:
+		err = RespondWithGame(w, g)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
 func AddGameHandler(w http.ResponseWriter, r *http.Request) {
 	g := game.Game{}
 
@@ -318,6 +354,27 @@ func GetGamesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func AddTeamHandler(w http.ResponseWriter, r *http.Request) {
+	strgid := mux.Vars(r)["id"]
+	gid, err := strconv.Atoi(strgid)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	t := team.Team{}
+	err = team.AddTeam(int64(gid), &t)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	err = RespondWithTeam(w, t)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
@@ -338,10 +395,13 @@ func main() {
 
 	r.HandleFunc("/game", AddGameHandler).Methods("POST")
 	r.HandleFunc("/game/{id}", GetGameHandler).Methods("GET")
+	r.HandleFunc("/game/bydate/{date}", GetGameByDateHandler).Methods("GET")
 
 	r.HandleFunc("/weather", AddWeatherHandler).Methods("POST")
 	r.HandleFunc("/weather/{id}", GetWeatherHandler).Methods("GET")
 	r.HandleFunc("/weather/bydate/{date}", GetWeatherByDateHandler).Methods("GET")
+
+	r.HandleFunc("/team/{gameid}", AddTeamHandler).Methods("POST")
 
 	http.Handle("/", r)
 

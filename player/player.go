@@ -119,7 +119,7 @@ func getPlayer(db *sql.DB, id int64, p *Player) error {
 func getPlayers(db *sql.DB) (Players, error) {
 	p := make(Players, 0)
 
-	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number FROM player"
+	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number FROM player ORDER BY preferred_name"
 
 	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
 
