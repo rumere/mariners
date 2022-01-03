@@ -1,3 +1,9 @@
 {
-    "go.inferGopath": false
+    "go.inferGopath": false,
+    "files.exclude": {
+        "**/.vscode": true,
+        "**/*.tar.gz": true,
+        "**/apiserver/*apiserver": true,
+        "**/ui/*ui": true
+    }
 }

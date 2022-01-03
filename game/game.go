@@ -75,17 +75,19 @@ func getGameByDate(db *sql.DB, d string, g *Game) error {
 			"idgame, "+
 			"idweather, "+
 			"date, "+
-			"ninth_tee"+
+			"ninth_tee "+
 			"FROM game WHERE "+
 			"date>=%s AND date<=%s",
 		s, f)
+
+	fmt.Printf("%s", query)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
 	err = db.QueryRowContext(ctx, query).Scan(
 		&g.ID,
-		&g.Date,
 		&g.WeatherID,
+		&g.Date,
 		&g.NinthTee)
 	if err != nil {
 		return err
