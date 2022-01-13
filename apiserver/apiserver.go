@@ -218,7 +218,15 @@ func GetPlayersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddWeatherHandler(w http.ResponseWriter, r *http.Request) {
-	err := weather.AddWeather()
+	wt := weather.Weather{}
+
+	err := wt.AddWeather()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = RespondWithWeather(w, wt)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -234,7 +242,7 @@ func GetWeatherHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wt := weather.Weather{}
-	err = weather.GetWeather(int64(id), &wt)
+	err = wt.GetWeather(int64(id))
 	switch {
 	case err == sql.ErrNoRows:
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -255,7 +263,7 @@ func GetWeatherByDateHandler(w http.ResponseWriter, r *http.Request) {
 	sdate := mux.Vars(r)["date"]
 
 	wt := weather.Weather{}
-	err := weather.GetWeatherByDate(sdate, &wt)
+	err := wt.GetWeatherByDate(sdate)
 	switch {
 	case err == sql.ErrNoRows:
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -276,7 +284,7 @@ func GetGameByDateHandler(w http.ResponseWriter, r *http.Request) {
 	sdate := mux.Vars(r)["date"]
 
 	g := game.Game{}
-	err := game.GetGameByDate(sdate, &g)
+	err := g.GetGameByDate(sdate)
 	switch {
 	case err == sql.ErrNoRows:
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -296,7 +304,13 @@ func GetGameByDateHandler(w http.ResponseWriter, r *http.Request) {
 func AddGameHandler(w http.ResponseWriter, r *http.Request) {
 	g := game.Game{}
 
-	err := game.AddGame(&g)
+	err := json.NewDecoder(r.Body).Decode(&g)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = g.AddGame()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -319,7 +333,7 @@ func GetGameHandler(w http.ResponseWriter, r *http.Request) {
 
 	g := game.Game{}
 
-	err = game.GetGame(int64(id), &g)
+	err = g.GetGame(int64(id))
 	switch {
 	case err == sql.ErrNoRows:
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -329,24 +343,6 @@ func GetGameHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 		err = RespondWithGame(w, g)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-}
-
-func GetGamesHandler(w http.ResponseWriter, r *http.Request) {
-	g, err := game.GetGames()
-	switch {
-	case err == sql.ErrNoRows:
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	case err != nil:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	default:
-		err = RespondWithGames(w, g)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

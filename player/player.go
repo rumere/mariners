@@ -18,6 +18,7 @@ type Player struct {
 	Phone         string `json:"phone"`
 	Email         string `json:"email"`
 	GhinNumber    string `json:"ghin_number"`
+	Role          string `json:"role"`
 }
 
 type Players []Player
@@ -37,7 +38,7 @@ func AddPlayer(p *Player) error {
 	return nil
 }
 
-func GetPlayer(id int64, p *Player) error {
+func (p *Player) GetPlayerByID(id int64) error {
 	db, err := db.DBConnection()
 	if err != nil {
 		log.Fatal(err)
@@ -64,9 +65,57 @@ func GetPlayers() (Players, error) {
 		return nil, err
 	}
 
+	return p, nil
+}
+
+func (p *Player) GetPlayerByToken(token string) error {
+	db, err := db.DBConnection()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number, role FROM player WHERE token=?"
+
+	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
+
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	err = db.QueryRowContext(ctx, query, token).Scan(&p.ID, &p.Name, &p.PreferredName, &p.Phone, &p.Email, &p.GhinNumber, &p.Role)
+	if err != nil {
+		return err
+	}
+
 	fmt.Printf("%#v", p)
 
-	return p, nil
+	return nil
+}
+
+func (p *Player) WriteToken(token string) error {
+	db, err := db.DBConnection()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	query := fmt.Sprintf("UPDATE player set token = \"%s\" WHERE idplayer = %d;\n", token, p.ID)
+
+	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
+
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	res, err := db.ExecContext(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Rows affected by update: %d\n", rows)
+
+	return nil
 }
 
 func UpdatePlayer(id int64, p *Player) error {
@@ -100,13 +149,13 @@ func DeletePlayer(id int64) error {
 }
 
 func getPlayer(db *sql.DB, id int64, p *Player) error {
-	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number FROM player WHERE idplayer=?"
+	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number, role FROM player WHERE idplayer=?"
 
 	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	err := db.QueryRowContext(ctx, query, id).Scan(&p.ID, &p.Name, &p.PreferredName, &p.Phone, &p.Email, &p.GhinNumber)
+	err := db.QueryRowContext(ctx, query, id).Scan(&p.ID, &p.Name, &p.PreferredName, &p.Phone, &p.Email, &p.GhinNumber, &p.Role)
 	if err != nil {
 		return err
 	}

@@ -1,5 +1,7 @@
 {
     "id": 1,
     "weather_id": 1,
-    "date": "string"
+    "date": "string",
+    "ninth_tee": "string",
+    "is_match": true
 }
