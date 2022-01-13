@@ -238,7 +238,7 @@ func sendcodeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendmessageHandler(w http.ResponseWriter, r *http.Request, title string) {
-	strid := r.FormValue("player")
+	strid := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -251,27 +251,12 @@ func sendmessageHandler(w http.ResponseWriter, r *http.Request, title string) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	msg := fmt.Sprintf("Message from %s: ", p.PreferredName)
+	msg += r.FormValue("message")
 
-	num, err := phonenumbers.Parse(p.Phone, "US")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	phone := phonenumbers.Format(num, phonenumbers.E164)
+	sms.SendTextTopic(msg, "arn:aws:sns:us-east-1:939932615330:MPLINKSTERS")
 
-	var code string
-	msg := "Your MPLINKSTERS Login Code is: "
-	for i := 0; i < 5; i++ {
-		s1 := rand.NewSource(time.Now().UnixNano())
-		r1 := rand.New(s1)
-		code += strconv.Itoa(r1.Intn(9))
-	}
-
-	p.WriteToken(code)
-
-	sms.SendTextPhone(msg+code, phone)
-
-	http.Redirect(w, r, "/verify", http.StatusFound)
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func verifyHandler(w http.ResponseWriter, r *http.Request) {
@@ -342,12 +327,12 @@ func maketokenHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
-	t, err := template.ParseFiles("tmpl/" + tmpl + ".html")
+	t, err := template.ParseFiles("tmpl/menu.html", "tmpl/"+tmpl+".html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	err = t.Execute(w, p)
+	err = t.ExecuteTemplate(w, tmpl+".html", p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -404,7 +389,7 @@ func main() {
 	r.HandleFunc("/games", makeHandler(gamesHandler))
 	r.HandleFunc("/addgame", makeHandler(addgameHandler))
 	r.HandleFunc("/message", makeHandler(messageHandler))
-	r.HandleFunc("/sendmessage", makeHandler(sendmessageHandler))
+	r.HandleFunc("/sendmessage/{id}", makeHandler(sendmessageHandler))
 	r.HandleFunc("/auth", authHandler)
 	r.HandleFunc("/sendcode", sendcodeHandler)
 	r.HandleFunc("/verify", verifyHandler)
