@@ -6,7 +6,6 @@ package weather
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -18,8 +17,6 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 )
-
-// Database connection parameters (secrets)
 
 // accuWeather is a []struct that can store the unmarshalled results of the accuweather current conditions API
 type accuWeather []struct {
@@ -416,6 +413,7 @@ type Weather struct {
 	CloudCover    int64   `json:"cloud_cover"`
 	WeatherText   string  `json:"weather_text"`
 	WeatherIcon   int64   `json:"weather_icon"`
+	WeatherLink   string  `json:"weather_link"`
 }
 
 func (w *Weather) AddWeather() error {
@@ -425,46 +423,66 @@ func (w *Weather) AddWeather() error {
 	}
 	defer db.Close()
 
-	err = w.writeWeather(db)
+	aw := accuWeather{}
+	err = aw.getAccuWeather()
 	if err != nil {
 		return err
 	}
 
+	w.Date = aw[0].LocalObservationDateTime
+	w.Temperature = int64(math.Round(aw[0].Temperature.Imperial.Value))
+	w.FeelsLike = int64(math.Round(aw[0].RealFeelTemperature.Imperial.Value))
+	w.Precipitation = aw[0].Precip1Hr.Imperial.Value
+	w.Wind = aw[0].Wind.Speed.Imperial.Value
+	w.WindGust = aw[0].WindGust.Speed.Imperial.Value
+	w.WindDirection = aw[0].Wind.Direction.English
+	w.Humidity = int64(aw[0].RelativeHumidity)
+	w.CloudCover = int64(aw[0].CloudCover)
+	w.WeatherText = aw[0].WeatherText
+	w.WeatherIcon = int64(aw[0].WeatherIcon)
+	w.WeatherLink = aw[0].Link
+
+	query := fmt.Sprintf("INSERT INTO weather VALUES (NULL, \"%s\", %d, %d, %.2f, %.1f, %.1f, \"%s\", %d, %d, \"%s\", %d, \"%s\")",
+		w.Date,
+		w.Temperature,
+		w.FeelsLike,
+		w.Precipitation,
+		w.Wind,
+		w.WindGust,
+		w.WindDirection,
+		w.Humidity,
+		w.CloudCover,
+		w.WeatherText,
+		w.WeatherIcon,
+		w.WeatherLink)
+
+	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
+
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	res, err := db.ExecContext(ctx, query)
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+		return err
+	}
+
+	w.ID, err = res.LastInsertId()
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+		return err
+	}
+
+	fmt.Printf("AddWeather: %#v\n", w)
 	return nil
 }
 
-func (w *Weather) GetWeather() error {
+func (w *Weather) GetWeatherByID() error {
 	db, err := db.DBConnection()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	err = getWeather(db, w.ID, w)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("%#v\n", w)
-	return nil
-}
-
-func (w *Weather) GetWeatherByDate(d string) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	err = getWeatherByDate(db, d, w)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func getWeather(db *sql.DB, id int64, w *Weather) error {
 	query := fmt.Sprintf(
 		"SELECT "+
 			"idweather, "+
@@ -478,15 +496,16 @@ func getWeather(db *sql.DB, id int64, w *Weather) error {
 			"humidity, "+
 			"cloudcover, "+
 			"weather_text, "+
-			"weather_icon "+
+			"weather_icon, "+
+			"weather_link "+
 			"FROM weather WHERE idweather=%d",
-		id)
+		w.ID)
 
 	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	err := db.QueryRowContext(ctx, query).Scan(
+	err = db.QueryRowContext(ctx, query).Scan(
 		&w.ID,
 		&w.Date,
 		&w.Temperature,
@@ -498,15 +517,23 @@ func getWeather(db *sql.DB, id int64, w *Weather) error {
 		&w.Humidity,
 		&w.CloudCover,
 		&w.WeatherText,
-		&w.WeatherIcon)
+		&w.WeatherIcon,
+		&w.WeatherLink)
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("GetWeatherByID: %#v\n", w)
 	return nil
 }
 
-func getWeatherByDate(db *sql.DB, d string, w *Weather) error {
+func (w *Weather) GetWeatherByDate(d string) error {
+	db, err := db.DBConnection()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
 	t, err := time.Parse("2006-01-02", d)
 	if err != nil {
 		return err
@@ -525,6 +552,9 @@ func getWeatherByDate(db *sql.DB, d string, w *Weather) error {
 			"wind_direction, "+
 			"humidity, "+
 			"cloudcover "+
+			"weather_text "+
+			"weather_icon "+
+			"weather_link "+
 			"FROM weather WHERE "+
 			"date>=%s AND date<=%s",
 		s, f)
@@ -549,12 +579,12 @@ func getWeatherByDate(db *sql.DB, d string, w *Weather) error {
 		return err
 	}
 
-	fmt.Printf("%#v", w)
+	fmt.Printf("GetWeatherByDate: %#v", w)
 
 	return nil
 }
 
-func getAccuWeather(aw *accuWeather) error {
+func (aw *accuWeather) getAccuWeather() error {
 	resp, err := http.Get("http://dataservice.accuweather.com/currentconditions/v1/332128?apikey=put8mfXawbPRMEXpDunTjZrKWJCw4AeE&details=true")
 	if err != nil {
 		return err
@@ -569,59 +599,6 @@ func getAccuWeather(aw *accuWeather) error {
 	if err != nil {
 		return err
 	}
-
-	return nil
-}
-
-func (w *Weather) writeWeather(db *sql.DB) error {
-	aw := accuWeather{}
-	err := getAccuWeather(&aw)
-	if err != nil {
-		return err
-	}
-
-	w.Date = aw[0].LocalObservationDateTime
-	w.Temperature = int64(math.Round(aw[0].Temperature.Imperial.Value))
-	w.FeelsLike = int64(math.Round(aw[0].RealFeelTemperature.Imperial.Value))
-	w.Precipitation = aw[0].Precip1Hr.Imperial.Value
-	w.Wind = aw[0].Wind.Speed.Imperial.Value
-	w.WindGust = aw[0].WindGust.Speed.Imperial.Value
-	w.WindDirection = aw[0].Wind.Direction.English
-	w.Humidity = int64(aw[0].RelativeHumidity)
-	w.CloudCover = int64(aw[0].CloudCover)
-	w.WeatherText = aw[0].WeatherText
-	w.WeatherIcon = int64(aw[0].WeatherIcon)
-
-	query := fmt.Sprintf("INSERT INTO weather VALUES (NULL, \"%s\", %d, %d, %.2f, %.1f, %.1f, \"%s\", %d, %d, \"%s\", %d)",
-		w.Date,
-		w.Temperature,
-		w.FeelsLike,
-		w.Precipitation,
-		w.Wind,
-		w.WindGust,
-		w.WindDirection,
-		w.Humidity,
-		w.CloudCover,
-		w.WeatherText,
-		w.WeatherIcon)
-
-	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
-
-	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelfunc()
-	res, err := db.ExecContext(ctx, query)
-	if err != nil {
-		fmt.Printf("%s\n", err.Error())
-		return err
-	}
-
-	w.ID, err = res.LastInsertId()
-	if err != nil {
-		fmt.Printf("%s\n", err.Error())
-		return err
-	}
-
-	fmt.Printf("%#v\n", w)
 
 	return nil
 }

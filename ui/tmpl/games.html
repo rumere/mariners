@@ -23,7 +23,7 @@
             <h3 class="uk-card-title">Games</h3>
             {{if .IsGameToday}}
                 <div>
-                    <div class="uk-card uk-card-default uk-card-hover uk-card-body">
+                    <div class="uk-card uk-card-default uk-card-hover uk-card-body" uk-toggle="target: #id-edit">
                         <h3>Today's Game</h3>
                         <p>{{.Games.Date}}</p>
                         <p>Ninth Tee: {{.Games.NinthTee}}</p>
@@ -34,7 +34,49 @@
                 <p>No Games Yet Today</p>
             {{end}}    
         </div>
-
+        <div id="id-edit" uk-modal>
+            <div class="uk-modal-dialog uk-modal-body">
+                <button class="uk-modal-close-default" type="button" uk-close></button>
+                <form action="/editgame" method="POST">
+                    <fieldset class="uk-fieldset">
+                        <legend class="uk-legend">Game Details</legend>
+                        <div class="uk-margin">
+                            <label class="uk-form-label" for="ninth-tee">Ninth Tee Box</label>
+                            <div class="uk-form-controls">
+                                <select class="uk-select" id="ninth-tee" name="ninth-tee" value="{{.Games.NinthTee}}">
+                                    <option>Broke Back</option>
+                                    <option>Crow's Nest</option>
+                                    <option>Straight Back</option>
+                                    <option>White Tees</option>
+                                    <option>Red Tees</option>
+                                    <option>Drop Zone</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="uk-margin">
+                            <div class="uk-margin uk-grid-small uk-child-width-auto uk-grid">
+                                <label><input class="uk-checkbox" type="checkbox" checked id="ismatch" name="ismatch" value="{{.Games.IsMatch}}"> Match?</label>
+                            </div>
+                        </div>
+                    </fieldset>
+                    <button class="uk-button uk-button-primary" type="submit">Edit</button>
+                </form>
+                <table class="uk-table uk-table-small uk-table-middle uk-table-justify uk-table-hover uk-table-divider">
+                    <tbody>
+                        <tr><td><img src="{{printf "https://developer.accuweather.com/sites/default/files/%02d-s.png" .Weather.WeatherIcon}}"></td><td><a href={{.Weather.WeatherLink}}>Weather Details</a></td></tr>
+                        <tr><td>Current Weather</td><td>{{.Weather.WeatherText}}</td></tr>
+                        <tr><td>Temperature</td><td>{{.Weather.Temperature}}&deg;F</td></tr>
+                        <tr><td>Feels Like</td><td>{{.Weather.FeelsLike}}&deg;F</td></tr>
+                        <tr><td>Precipitation</td><td>{{.Weather.Precipitation}}</td></tr>
+                        <tr><td>Wind</td><td>{{.Weather.Wind}}</td></tr>
+                        <tr><td>Wind Gust</td><td>{{.Weather.WindGust}}</td></tr>
+                        <tr><td>Wind Direction</td><td>{{.Weather.WindDirection}}</td></tr>
+                        <tr><td>Humidity</td><td>{{.Weather.Humidity}}</td></tr>
+                        <tr><td>Cloud Cover</td><td>{{.Weather.CloudCover}}&percnt;</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
         <div id="id-add" uk-modal>
             <div class="uk-modal-dialog uk-modal-body">
                 <form action="/addgame" method="POST">

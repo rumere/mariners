@@ -85,7 +85,11 @@ func gamesHandler(w http.ResponseWriter, r *http.Request, title string) {
 	default:
 		p.IsGameToday = true
 		p.Weather.ID = p.Games.WeatherID
-		p.Weather.GetWeather()
+		err = p.Weather.GetWeatherByID()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		fmt.Printf("Weather: %#v\n", p.Weather)
 	}
 
@@ -108,7 +112,7 @@ func updateplayerHandler(w http.ResponseWriter, r *http.Request, title string) {
 	p.Email = r.FormValue("email")
 	p.GhinNumber = r.FormValue("ghin-number")
 
-	err = player.UpdatePlayer(p.ID, &p)
+	err = p.UpdatePlayer()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -166,7 +170,9 @@ func deleteplayerHandler(w http.ResponseWriter, r *http.Request, title string) {
 		return
 	}
 
-	err = player.DeletePlayer(int64(id))
+	p := player.Player{}
+	p.ID = int64(id)
+	err = p.DeletePlayer()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
