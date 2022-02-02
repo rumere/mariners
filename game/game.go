@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"log"
 	"mariners/db"
+	"mariners/tee"
 	"mariners/weather"
 	"time"
 )
 
 type Game struct {
-	ID        int64  `json:"id"`
-	WeatherID int64  `json:"weather_id"`
-	Date      string `json:"date"`
-	NinthTee  string `json:"ninth_tee"`
-	IsMatch   bool   `json:"is_match"`
+	Weather weather.Weather
+	Tee     tee.Tee
+	ID      int64  `json:"id"`
+	Date    string `json:"date"`
+	IsMatch bool   `json:"is_match"`
 }
 
 type Games []Game
@@ -26,12 +27,7 @@ func (g *Game) AddGame() error {
 	}
 	defer db.Close()
 
-	w := weather.Weather{}
-	w.AddWeather()
-
-	fmt.Printf("%#v\n", &w)
-
-	g.WeatherID = w.ID
+	g.Weather.AddWeather()
 
 	loc, err := time.LoadLocation("America/Los_Angeles")
 	if err != nil {
@@ -42,10 +38,10 @@ func (g *Game) AddGame() error {
 
 	fmt.Printf("%#v\n", g)
 
-	query := fmt.Sprintf("INSERT INTO game (idgame, idweather, date, ninth_tee, ismatch) VALUES (NULL, %d, \"%s\", \"%s\", %t);\n",
-		g.WeatherID,
+	query := fmt.Sprintf("INSERT INTO game (idgame, idweather, date, idninthtee, ismatch) VALUES (NULL, %d, \"%s\", %d, %t);\n",
+		g.Weather.ID,
 		g.Date,
-		g.NinthTee,
+		g.Tee.ID,
 		g.IsMatch)
 
 	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
@@ -62,14 +58,6 @@ func (g *Game) AddGame() error {
 		return err
 	}
 
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("%#v", g)
-	fmt.Printf("Rows affected by insert: %d\n", rows)
-
 	return nil
 }
 
@@ -80,7 +68,7 @@ func (g *Game) UpdateGame() error {
 	}
 	defer db.Close()
 
-	query := fmt.Sprintf("UPDATE game set ninth_tee = \"%s\", ismatch=%t where idplayer=%d;", g.NinthTee, g.IsMatch, g.ID)
+	query := fmt.Sprintf("UPDATE game set idninthtee = %d, ismatch=%t where idplayer=%d;", g.Tee.ID, g.IsMatch, g.ID)
 
 	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
 
@@ -94,9 +82,9 @@ func (g *Game) UpdateGame() error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("%#v", g)
-	fmt.Printf("Rows affected by update: %d\n", rows)
+	if rows != 1 {
+		return fmt.Errorf("UpdateGame: No game by where idgame = %d", g.ID)
+	}
 
 	return nil
 }
@@ -108,7 +96,7 @@ func (g *Game) GetGameByID(id int64) error {
 	}
 	defer db.Close()
 
-	query := "SELECT idgame, idweather, date, ninth_tee, ismatch FROM game WHERE idgame=?"
+	query := "SELECT idgame, idweather, date, idninthtee, ismatch FROM game WHERE idgame=?"
 
 	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
 
@@ -116,15 +104,13 @@ func (g *Game) GetGameByID(id int64) error {
 	defer cancelfunc()
 	err = db.QueryRowContext(ctx, query, id).Scan(
 		&g.ID,
-		&g.WeatherID,
+		&g.Weather.ID,
 		&g.Date,
-		&g.NinthTee,
+		&g.Tee.ID,
 		&g.IsMatch)
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("%#v", g)
 
 	return nil
 }
@@ -147,7 +133,7 @@ func (g *Game) GetGameByDate(d string) error {
 			"idgame, "+
 			"idweather, "+
 			"date, "+
-			"ninth_tee, "+
+			"idninthtee, "+
 			"ismatch "+
 			"FROM game WHERE "+
 			"date>=%s AND date<=%s",
@@ -159,9 +145,9 @@ func (g *Game) GetGameByDate(d string) error {
 	defer cancelfunc()
 	err = db.QueryRowContext(ctx, query).Scan(
 		&g.ID,
-		&g.WeatherID,
+		&g.Weather.ID,
 		&g.Date,
-		&g.NinthTee,
+		&g.Tee.ID,
 		&g.IsMatch)
 	if err != nil {
 		return err
@@ -179,7 +165,7 @@ func (gs Games) GetGames() error {
 	}
 	defer db.Close()
 
-	query := "SELECT idgame, idweather, date, ninth_tee, ismatch FROM game"
+	query := "SELECT idgame, idweather, date, idninthtee, ismatch FROM game"
 
 	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
 
@@ -194,9 +180,9 @@ func (gs Games) GetGames() error {
 	for rows.Next() {
 		err := rows.Scan(
 			&game.ID,
-			&game.WeatherID,
+			&game.Weather.ID,
 			&game.Date,
-			&game.NinthTee,
+			&game.Tee.ID,
 			&game.IsMatch)
 		if err != nil {
 			return err

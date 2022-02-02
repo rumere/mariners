@@ -2,6 +2,6 @@
     "id": 1,
     "weather_id": 1,
     "date": "string",
-    "ninth_tee": "string",
+    "ninthtee_id": 1,
     "is_match": true
 }

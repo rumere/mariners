@@ -3,5 +3,7 @@
     "name": "string",
     "phone": "string",
     "email": "string",
-    "ghin_number": "string"
+    "ghin_number": "string",
+    "token": "string",
+    "role_id": 1
 }

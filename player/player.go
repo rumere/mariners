@@ -5,19 +5,20 @@ import (
 	"fmt"
 	"log"
 	"mariners/db"
+	"mariners/role"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type Player struct {
+	Roles         role.Roles
 	ID            int64  `json:"id"`
 	Name          string `json:"name"`
 	PreferredName string `json:"preferred_name"`
 	Phone         string `json:"phone"`
 	Email         string `json:"email"`
 	GhinNumber    string `json:"ghin_number"`
-	Role          string `json:"role"`
 }
 
 type Players []Player
@@ -35,27 +36,42 @@ func AddPlayer(p *Player) error {
 		p.Phone,
 		p.Email,
 		p.GhinNumber)
-
-	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
-
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
 	res, err := db.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
-
 	p.ID, err = res.LastInsertId()
 	if err != nil {
 		return err
 	}
-
 	rows, err := res.RowsAffected()
 	if err != nil {
 		return err
 	}
+	if rows == 0 {
+		return fmt.Errorf("no player added")
+	}
 
-	fmt.Printf("Rows affected by insert: %d\n", rows)
+	for rk := range p.Roles {
+		query = fmt.Sprintf("INSERT INTO role_members (idrole, idplayer) VALUES (%d, %d)",
+			rk,
+			p.ID)
+		ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancelfunc()
+		res, err := db.ExecContext(ctx, query)
+		if err != nil {
+			return err
+		}
+		rows, err := res.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if rows == 0 {
+			return fmt.Errorf("no role added for player %d", p.ID)
+		}
+	}
 
 	return nil
 }
@@ -67,18 +83,18 @@ func (p *Player) GetPlayerByID(id int64) error {
 	}
 	defer db.Close()
 
-	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number, role FROM player WHERE idplayer=?"
-
-	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
-
+	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number FROM player WHERE idplayer=?"
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	err = db.QueryRowContext(ctx, query, id).Scan(&p.ID, &p.Name, &p.PreferredName, &p.Phone, &p.Email, &p.GhinNumber, &p.Role)
+	err = db.QueryRowContext(ctx, query, id).Scan(&p.ID, &p.Name, &p.PreferredName, &p.Phone, &p.Email, &p.GhinNumber)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("%#v", p)
+	p.Roles, err = role.GetRolesByPlayerID(p.ID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -93,9 +109,6 @@ func GetPlayers() (Players, error) {
 	p := make(Players, 0)
 
 	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number FROM player ORDER BY preferred_name"
-
-	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
-
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
 	rows, err := db.QueryContext(ctx, query)
@@ -106,6 +119,10 @@ func GetPlayers() (Players, error) {
 	for rows.Next() {
 		var player Player
 		if err := rows.Scan(&player.ID, &player.Name, &player.PreferredName, &player.Phone, &player.Email, &player.GhinNumber); err != nil {
+			return p, err
+		}
+		player.Roles, err = role.GetRolesByPlayerID(player.ID)
+		if err != nil {
 			return p, err
 		}
 		p = append(p, player)
@@ -121,18 +138,18 @@ func (p *Player) GetPlayerByToken(token string) error {
 	}
 	defer db.Close()
 
-	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number, role FROM player WHERE token=?"
-
-	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
-
+	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number FROM player WHERE token=?"
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	err = db.QueryRowContext(ctx, query, token).Scan(&p.ID, &p.Name, &p.PreferredName, &p.Phone, &p.Email, &p.GhinNumber, &p.Role)
+	err = db.QueryRowContext(ctx, query, token).Scan(&p.ID, &p.Name, &p.PreferredName, &p.Phone, &p.Email, &p.GhinNumber)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("%#v", p)
+	p.Roles, err = role.GetRolesByPlayerID(p.ID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -145,9 +162,6 @@ func (p *Player) WriteToken(token string) error {
 	defer db.Close()
 
 	query := fmt.Sprintf("UPDATE player set token = \"%s\" WHERE idplayer = %d;\n", token, p.ID)
-
-	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
-
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
 	res, err := db.ExecContext(ctx, query)
@@ -159,7 +173,9 @@ func (p *Player) WriteToken(token string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Rows affected by update: %d\n", rows)
+	if rows == 0 {
+		return fmt.Errorf("no token added")
+	}
 
 	return nil
 }
@@ -167,7 +183,7 @@ func (p *Player) WriteToken(token string) error {
 func (p *Player) UpdatePlayer() error {
 	db, err := db.DBConnection()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer db.Close()
 
@@ -178,21 +194,33 @@ func (p *Player) UpdatePlayer() error {
 		p.Email,
 		p.GhinNumber,
 		p.ID)
-
-	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
-
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	res, err := db.ExecContext(ctx, query)
+	_, err = db.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
 
-	rows, err := res.RowsAffected()
+	query = fmt.Sprintf("DELETE FROM role_members WHERE idplayer = %d",
+		p.ID)
+	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	_, err = db.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Rows affected by update: %d\n", rows)
+
+	for rk := range p.Roles {
+		query = fmt.Sprintf("INSERT INTO role_members (idrole, idplayer) VALUES (%d, %d)",
+			rk,
+			p.ID)
+		ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancelfunc()
+		_, err := db.ExecContext(ctx, query)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -204,9 +232,7 @@ func (p *Player) DeletePlayer() error {
 	}
 	defer db.Close()
 
-	query := fmt.Sprintf("DELETE FROM player WHERE idplayer=%d", p.ID)
-
-	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
+	query := fmt.Sprintf("DELETE FROM role_members WHERE idplayer=%d", p.ID)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
@@ -220,7 +246,27 @@ func (p *Player) DeletePlayer() error {
 		return err
 	}
 
-	fmt.Printf("Rows affected by delete: %d\n", rows)
+	if rows == 0 {
+		return fmt.Errorf("no roles deleted")
+	}
+
+	query = fmt.Sprintf("DELETE FROM player WHERE idplayer=%d", p.ID)
+
+	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	res, err = db.ExecContext(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	rows, err = res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("no players deleted")
+	}
 
 	return nil
 }

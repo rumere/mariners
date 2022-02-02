@@ -26,7 +26,7 @@
                     <div class="uk-card uk-card-default uk-card-hover uk-card-body" uk-toggle="target: #id-edit">
                         <h3>Today's Game</h3>
                         <p>{{.Games.Date}}</p>
-                        <p>Ninth Tee: {{.Games.NinthTee}}</p>
+                        <p>Ninth Tee: {{.Games.Tee.Name}}</p>
                         <p>Weather: <img src="{{printf "https://developer.accuweather.com/sites/default/files/%02d-s.png" .Weather.WeatherIcon}}">{{.Weather.Temperature}}&deg;F</p>
                     </div>
                 </div>
@@ -43,13 +43,10 @@
                         <div class="uk-margin">
                             <label class="uk-form-label" for="ninth-tee">Ninth Tee Box</label>
                             <div class="uk-form-controls">
-                                <select class="uk-select" id="ninth-tee" name="ninth-tee" value="{{.Games.NinthTee}}">
-                                    <option>Broke Back</option>
-                                    <option>Crow's Nest</option>
-                                    <option>Straight Back</option>
-                                    <option>White Tees</option>
-                                    <option>Red Tees</option>
-                                    <option>Drop Zone</option>
+                                <select class="uk-select" id="ninth-tee" name="ninth-tee" value="{{.Games.Tee.Name}}">
+                                {{range $tee := .Tees}}
+                                    <option value="{{$tee.ID}}">{{$tee.Name}}</option>
+                                {{end}}
                                 </select>
                             </div>
                         </div>
@@ -86,12 +83,9 @@
                             <label class="uk-form-label" for="ninth-tee">Ninth Tee Box</label>
                             <div class="uk-form-controls">
                                 <select class="uk-select" id="ninth-tee" name="ninth-tee">
-                                    <option>Broke Back</option>
-                                    <option>Crow's Nest</option>
-                                    <option>Straight Back</option>
-                                    <option>White Tees</option>
-                                    <option>Red Tees</option>
-                                    <option>Drop Zone</option>
+                                {{range $tee := .Tees}}
+                                    <option value="{{$tee.ID}}">{{$tee.Name}}</option>
+                                {{end}}
                                 </select>
                             </div>
                         </div>
