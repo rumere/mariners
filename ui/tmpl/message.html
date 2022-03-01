@@ -1,39 +1,14 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>MPLinksters</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="static/css/uikit.min.css" />
-        <link rel="shortcut icon" type="image/png" href="static/img/mp.png"/>
-        <script src="static/js/uikit.min.js"></script>
-        <script src="static/js/uikit-icons.min.js"></script>
-    </head>
-    <body>
-        {{template "menu.html"}} 
-        <div class="uk-container uk-container-center uk-margin">
-            <ul class="uk-iconnav">
-                <li><span class="uk-margin-small" uk-icon="menu" uk-tooltip="Menu" uk-toggle="target: #offcanvas-slide"></span></li>
-            </ul>
-        </div>
-        <div class="uk-container uk-container-center uk-margin-top uk-box-shadow-small">
-            <div class="uk-card-media-top uk-margin-top">
-                <img class="uk-align-center" src="static/img/mp.png" alt="">
+<div class="uk-card-body">
+    <h3 class="uk-card-title">Send A Message</h3>
+    <p>Use this page to send a message to ALL of the Mariner's golfers.</p>
+    <form action="/sendmessage/{{.User.ID}}" method="POST">
+        <fieldset class="uk-fieldset">
+            <div class="uk-margin">
+                <div class="uk-form-controls">
+                    <textarea class="uk-textarea" rows="5" name="message" id="message" placeholder="Add your message here!"></textarea>
+                </div>
             </div>
-            <div class="uk-card-body">
-                <h3 class="uk-card-title">Send A Message</h3>
-                <p>Use this page to send a message to ALL of the Mariner's golfers.</p>
-                <form action="/sendmessage/{{.Player.ID}}" method="POST">
-                    <fieldset class="uk-fieldset">
-                        <div class="uk-margin">
-                            <div class="uk-form-controls">
-                                <textarea class="uk-textarea" rows="5" name="message" id="message" placeholder="Add your message here!"></textarea>
-                            </div>
-                        </div>
-                    </fieldset>
-                    <button class="uk-button uk-button-primary" type="submit">Send</button>
-                </form>
-            </div>
-        </div>
-    </body>
-</html>
+        </fieldset>
+        <button class="uk-button uk-button-primary" type="submit">Send</button>
+    </form>
+</div>

@@ -1,0 +1,62 @@
+<div class="uk-card-body">
+    <legend class="uk-legend">{{printf "%s" .FocusPlayer.PreferredName}}</legend>
+    <form enctype="multipart/form-data" method="post" id="playeredit" name="playeredit" action="/updateplayer" onsubmit="return submitForm(this, 'playeredit/{{.FocusPlayer.ID}}'); return false;">
+        <fieldset class="uk-fieldset">
+            <div class="uk-margin">
+                <label class="uk-form-label" for="name">Name</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input uk-form-small" id="name" name="name" type="text" value="{{.FocusPlayer.Name}}">
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="preferred-name">Preferred Name</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input uk-form-small" id="preferred-name" name="preferred-name" type="text" value="{{.FocusPlayer.PreferredName}}">
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="phone">Phone Number</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input uk-form-small" id="phone" name="phone" type="tel" value="{{.FocusPlayer.Phone}}">
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="email">Email</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input uk-form-small" id="email" name="email" type="email" value="{{.FocusPlayer.Email}}">
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="ghin-number">GHIN Number</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input uk-form-small" id="ghin-number" name="ghin-number" type="text" value="{{.FocusPlayer.GhinNumber}}">
+                </div>
+            </div>
+            {{ if ($.User.HasRole "Administrator") }}
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="role">Select Roles</label>
+                    {{ range $roleid, $rolename := .Roles }}
+                        <div class="uk-form-controls">
+                            {{ if (index $.FocusPlayer.Roles $roleid) }}
+                                <label><input class="uk-checkbox" type="checkbox" name="role" value="{{ $roleid }}" checked><span class="uk-text-small"> {{ $rolename }}</span></label>
+                            {{ else }}
+                                <label><input class="uk-checkbox" type="checkbox" name="role" value="{{ $roleid }}"><span class="uk-text-small"> {{ $rolename }}</span></label>
+                            {{ end }}
+                        </div>
+                    {{ end }}
+                </div>
+            {{ else }}
+                {{ range $roleid, $rolename := .Roles }}
+                    {{ if (index $.FocusPlayer.Roles $roleid) }}
+                        <input type="hidden" name="role" value="{{ $roleid }}">
+                    {{ end }}
+                {{ end }}
+            {{ end }}
+            <input type="hidden" id="id" name="id" value="{{$.FocusPlayer.ID}}">
+        </fieldset>
+        <div class="uk-margin">
+            <button class="uk-button uk-button-default uk-button-small" type="button" onClick="showSection('players')">Cancel</button>
+            <button class="uk-button uk-button-primary uk-button-small" id="pebtn" type="submit">Save</button>
+        </div>
+    </form>
+</div>

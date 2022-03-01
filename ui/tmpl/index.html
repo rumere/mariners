@@ -1,29 +1,72 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>MPLinksters</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="static/css/uikit.min.css" />
-        <link rel="shortcut icon" type="image/png" href="static/img/mp.png"/>
-        <script src="static/js/uikit.min.js"></script>
-        <script src="static/js/uikit-icons.min.js"></script>
-    </head>
+    {{ template "header.html" }} 
     <body>
-        {{template "menu.html"}} 
-        <div class="uk-container uk-container-center uk-margin">
-            <ul class="uk-iconnav">
-                <li><span class="uk-margin-small" uk-icon="menu" uk-tooltip="Menu" uk-toggle="target: #offcanvas-slide"></span></li>
-            </ul>
-        </div>
-        <div class="uk-container uk-container-center uk-margin-top uk-box-shadow-small">
+        {{ template "menu.html" }}
+        <div class="uk-container uk-margin">
+            <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+                <div class="uk-navbar-left">
+                    <ul class="uk-iconnav">
+                        <li><span class="uk-margin-small" uk-icon="menu" uk-tooltip="Menu" uk-toggle="target: #offcanvas-slide"></span></li>
+                        <li><span class="uk-margin-small" uk-icon="users" uk-tooltip="Players" onClick="showSection('players')"></span></li>
+                        <li><span class="uk-margin-small" uk-icon="calendar" uk-tooltip="Events" onClick="showSection('events')"></span></li>
+                        <li><span class="uk-margin-small" uk-icon="comment" uk-tooltip="Messages" onClick="showSection('message')"></span></li>
+                    </ul>
+                </div>
+                {{ template "profilemenu.html" . }}
+            </nav>
             <div class="uk-card-media-top uk-margin-top">
                 <img class="uk-align-center" src="static/img/mp.png" alt="">
             </div>
-            <div class="uk-card-body">
-                <h3 class="uk-card-title">Mariner's Point Linksters Home Page</h3>
-                <p>A place on the internets for the Mariner's point crew to share information and data about our fun times.</p>
+            <div class="uk-container uk-container-center uk-margin-top uk-box-shadow-small" id="focus">
+                {{ template "home.html" . }}
             </div>
         </div>
+        <script>
+            function showSection(s) {
+                var sectionReq = new XMLHttpRequest();
+
+                UIkit.offcanvas(document.getElementById("offcanvas-slide")).hide();
+
+                sectionReq.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        document.getElementById("focus").innerHTML =
+                        this.responseText;
+                    }
+                };
+                sectionReq.open("GET", "/" + s, true);
+                sectionReq.send();
+            }
+
+            function submitForm(eForm, section) {
+                var eReq = new XMLHttpRequest(),
+                    eData = new FormData(eForm);
+
+                for (var value of eData.values()) {
+                    console.log(value);
+                }
+
+                eReq.onload = UIkit.notification({message: "<span uk-icon='icon: check'></span> Form Submitted!", pos: "top-center"});
+                eReq.open("POST", eForm.getAttribute("action"), true);
+                eReq.send(eData);
+
+                return false;
+            }
+
+            function submitFormStatic(eForm) {
+                var eReq = new XMLHttpRequest(),
+                    eData = new FormData(eForm);
+
+                for (var value of eData.values()) {
+                    console.log(value);
+                }
+
+                eReq.onload = UIkit.notification({message: "<span uk-icon='icon: check'></span> Form Submitted!", pos: "top-center"});
+                eReq.open("POST", eForm.getAttribute("action"), true);
+                eReq.send(eData);
+
+                return false;
+            }
+        </script>
     </body>
 </html>

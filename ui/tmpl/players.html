@@ -1,40 +1,41 @@
-<!DOCTYPE html>
-
-<html>
-    {{ template "header.html" }} 
-    <body>
-        {{ template "menu.html" . }} 
-        <div class="uk-container uk-container-center uk-margin">
-            <ul class="uk-iconnav">
-                <li><span class="uk-margin-small" uk-icon="menu" uk-tooltip="Menu" uk-toggle="target: #offcanvas-slide"></span></li>
-                <li><span class="uk-margin-small" uk-icon="plus" uk-tooltip="Add Player" uk-toggle="target: #id-add"></span></li>
-            </ul>
-        </div>
-        <div class="uk-container uk-container-center uk-margin-top uk-box-shadow-small">
-            {{ template "updateplayer.html" . }} 
-            {{ template "deleteplayer.html" . }} 
-            {{ template "addplayer.html" . }} 
-            <div class="uk-container">
-                <table class="uk-table uk-table-small uk-table-middle uk-table-justify uk-table-hover uk-table-divider ">
-                    <caption class="uk-margin-small-top">Mariner's Point Linksters Roster</caption>
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Phone</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{range $player := .Players}}
-                        <tr>
-                            <td uk-toggle="target: #id-{{$player.ID}}"><p class="uk-text-small">{{printf "%s" $player.PreferredName}}</p></td>
-                            <td uk-toggle="target: #id-{{$player.ID}}"><p class="uk-text-small">{{printf "%s" $player.Phone}}</p></td>
-                            <td uk-toggle="target: #id-del-{{$player.ID}}" uk-tooltip="Delete Player"><span class="uk-margin-small" uk-icon="trash"></span></td>
-                        </tr>
-                        {{end}}
-                    </tbody>
-                </table>
+<div class="uk-card-body">
+    {{ if or ($.User.HasRole "Administrator") ($.User.HasRole "Roster") }}
+        <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+            <div class="uk-navbar-right">
+                <ul class="uk-iconnav">
+                    <li onClick="showSection('playeradd')">
+                        <span class="uk-margin-small" uk-icon="plus" uk-tooltip="Add Player"></span>
+                    </li>
+                </ul>
             </div>
-        </div>
-    </body>
-</html>
+        </nav>
+    {{ end }}
+    <table class="uk-table uk-table-small uk-table-middle uk-table-justify uk-table-hover uk-table-divider ">
+        <label class="uk-margin-small-top">Mariner's Point Linksters Roster</label>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                {{ if or ($.User.HasRole "Administrator") ($.User.HasRole "Roster") }}
+                    <th></th>
+                {{ end }}
+            </tr>
+        </thead>
+        <tbody>
+            {{range $player := .Players}}
+                {{ if or ($.User.HasRole "Administrator") ($.User.HasRole "Roster") }}
+                    <tr onClick="showSection('playeredit/{{$player.ID}}')">
+                {{ else }}
+                    <tr onClick="showSection('playerview/{{$player.ID}}')">
+                {{ end }}
+                        <td><p class="uk-text-small">{{printf "%s" $player.PreferredName}}</p></td>
+                        <td><p class="uk-text-small">{{printf "%s" $player.Phone}}</p></td>
+                        {{ if or ($.User.HasRole "Administrator") ($.User.HasRole "Roster") }}
+                            <td uk-toggle="target: #id-del-{{$player.ID}}" uk-tooltip="Delete Player"><span class="uk-margin-small" uk-icon="trash"></span></td>
+                        {{ end }}
+                    </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>
+{{ template "deleteplayer.html" . }}

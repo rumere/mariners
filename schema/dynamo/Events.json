@@ -1,0 +1,16 @@
+{
+    "EventID": "string",
+    "Name": "string",
+    "Description": "string",
+    "Date": "string",
+    "PaidEvent": false,
+    "Cost": 0.00,
+    "InviteOnly": false,
+    "Owner": "string",
+    "Members": [
+        {
+            "PlayerID": "string",
+            "Paid": false
+        }
+    ]
+}

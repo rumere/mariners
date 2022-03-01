@@ -1,0 +1,17 @@
+{
+    "id": 1,
+    "name": "string",
+    "date": "2006-01-02 03:04:05",
+    "paid_event": false,
+    "topic_arn": "string",
+    "members": [
+        { 
+            "playerid": 1,
+            "paid": false
+        },
+        { 
+            "playerid": 2,
+            "paid": false
+        }
+    ]
+}

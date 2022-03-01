@@ -1,0 +1,38 @@
+<div class="uk-card-body">
+    <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+        <div class="uk-navbar-right">
+            <ul class="uk-iconnav">
+                <li onClick="showSection('players')">
+                    <span class="uk-margin-small" uk-icon="close" uk-tooltip="Settings"></span>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <legend class="uk-legend">{{printf "%s" .FocusPlayer.PreferredName}}</legend>
+    <div class="uk-margin" uk-grid>
+        <table class="uk-table uk-table uk-table-middle">
+            <tbody>
+                <tr>
+                    <td><p class="uk-text uk-text-bolder">Name</p></td>
+                    <td><p class="uk-text"> {{.FocusPlayer.Name}}</p></td>
+                </tr>
+                <tr>
+                    <td><p class="uk-text uk-text-bolder">Preferred Name</p></td>
+                    <td><p class="uk-text"> {{.FocusPlayer.PreferredName}}</p></td>
+                </tr>
+                <tr>
+                    <td><p class="uk-text uk-text-bolder">Phone Number</p></td>
+                    <td><p class="uk-text"> {{.FocusPlayer.Phone}}</p></td>
+                </tr>
+                <tr>
+                    <td><p class="uk-text uk-text-bolder">Email</p></td>
+                    <td><p class="uk-text"> {{.FocusPlayer.Email}}</p></td>
+                </tr>
+                <tr>
+                    <td><p class="uk-text uk-text-bolder">GHIN Number</p></td>
+                    <td><p class="uk-text"> {{.FocusPlayer.GhinNumber}}</p></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

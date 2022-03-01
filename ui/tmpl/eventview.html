@@ -1,0 +1,49 @@
+<div class="uk-card-body">
+    <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+        <div class="uk-navbar-right">
+            <ul class="uk-iconnav">
+                <li onClick="showSection('events')">
+                    <span class="uk-margin-small" uk-icon="close" uk-tooltip="Event"></span>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <legend class="uk-legend">{{printf "%s" .FocusEvent.Name}}</legend>
+    <table class="uk-table uk-table-small uk-table-middle uk-table-justify">
+        <tbody>
+            <tr>
+                <td><p class="uk-text uk-text-bolder">Date: </p></td>
+                <td><p class="uk-text-small"> {{.FocusEvent.Date}}</p></td>
+            </tr>
+            <tr><td><p class="uk-text uk-text-bolder">Description</p></td></tr>
+            <tr><td colspan="2"><p class="uk-text-small"> {{.FocusEvent.Description}}</p></td></tr>
+            <tr>
+                <td><p class="uk-text uk-text-bolder">Owner:</p></td>
+                <td><p class="uk-text-small"> {{.FocusEvent.Owner.PreferredName}}</p></td>
+            </tr>
+        </tbody>
+    </table>
+    <table class="uk-table uk-table-small uk-table-middle uk-table-justify uk-table-divider"> 
+        <tbody>
+            <tr><td><p class="uk-text uk-text-bolder">Members</p></td></tr>
+            {{ range $member := .FocusEvent.Members }}
+                <tr>
+                    <td><p class="uk-text-small"> {{$member.Player.PreferredName}}
+                </tr>
+            {{ end }}
+        </tbody>
+    </table>
+    <table class="uk-table uk-table-small uk-table-middle uk-table-justify uk-table-divider"> 
+        <tbody>
+            <tr><td><p class="uk-text uk-text-bolder">Messages</p></td></tr>
+            {{ range $msg := .FocusEvent.Messages }}
+                <tr>
+                    <td>
+                        <p class="uk-text-small">{{ $msg.Date }} from {{ $msg.Player.PreferredName }}:</p>
+                        <p class="uk-text-small">{{ $msg.Message }}</p>
+                    </td>
+                </tr>
+            {{ end }}
+        </tbody>
+    </table>
+</div>

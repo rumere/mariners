@@ -1,0 +1,53 @@
+<div class="uk-card-body">
+    <legend class="uk-legend">Add Player</legend>
+    <form enctype="multipart/form-data" method="post" id="playeradd" name="playeradd" action="/addplayer" onsubmit="return submitForm(this, 'players'); return false;">
+        <fieldset class="uk-fieldset">
+            <div class="uk-margin">
+                <label class="uk-form-label" for="name">Name</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input uk-form-small" id="name" name="name" type="text" placeholder="Name">
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="preferred-name">Preferred Name</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input uk-form-small" id="preferred-name" name="preferred-name" type="text" placeholder="Preferred Name">
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="phone">Phone Number</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input uk-form-small" id="phone" name="phone" type="text" placeholder="123-456-7890">
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="email">Email</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input uk-form-small" id="email" name="email" type="text" placeholder="user@email.com">
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="ghin-number">GHIN Number</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input uk-form-small" id="ghin-number" name="ghin-number" type="text" placeholder="0000000">
+                </div>
+            </div>
+            {{ if (.User.HasRole "Administrator") }}
+                <div class="uk-margin">
+                    <label class="uk-form-label" for="role">Select Roles</label>
+                    {{ range $roleid, $rolename := .Roles }}
+                        <div class="uk-form-controls">
+                            <label><input class="uk-checkbox" type="checkbox" name="role" value="{{ $roleid }}"><span class="uk-text-small"> {{ $rolename }}</span></label>
+                        </div>
+                    {{ end }}
+                </div>
+            {{ else }}
+                <input type="hidden" name="role" value="1">
+            {{ end }}}}
+        </fieldset>
+        <div uk-margin>
+            <button class="uk-button uk-button-default uk-button-small" type="button" onClick="showSection('players')">Cancel</button>
+            <button class="uk-button uk-button-primary uk-button-small" id="pabtn" type="submit">Add</button>
+        </div>
+    </form>
+</div>

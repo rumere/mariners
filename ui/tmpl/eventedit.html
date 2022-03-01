@@ -1,0 +1,150 @@
+<div class="uk-card-body">
+    {{ template "memberpay.html" . }}
+    {{ template "memberunpay.html" . }}
+    {{ template "memberdel.html" . }}
+    <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+        <div class="uk-navbar-right">
+            <ul class="uk-iconnav">
+                <li onClick="showSection('eventedit/{{.FocusEvent.ID}}')">
+                    <span class="uk-margin-small" uk-icon="refresh" uk-tooltip="Refresh Page"></span>
+                </li>
+                <li onClick="showSection('events')">
+                    <span class="uk-margin-small" uk-icon="close" uk-tooltip="Close Window"></span>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <legend class="uk-legend">{{printf "%s" .FocusEvent.Name}}</legend>
+    <form enctype="multipart/form-data" method="post" id="eventedit" name="eventedit" action="/eventupdate" onsubmit="return submitForm(this, 'events'); return false;">
+        <fieldset class="uk-fieldset">
+            <div class="uk-margin">
+                <label class="uk-form-label" for="name">Name</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input uk-form-small" id="name" name="name" type="text" value="{{.FocusEvent.Name}}">
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="preferred-name">Description</label>
+                <div class="uk-form-controls">
+                    <textarea class="uk-textarea uk-form-small" rows="3" id="description" name="description">{{.FocusEvent.Description}}</textarea>
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="phone">Date</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input uk-form-small" id="date" name="date" type="datetime-local" value="{{.FocusEvent.Date}}">
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="owner">Owner</label>
+                <div class="uk-form-controls">
+                    <select class="uk-select uk-form-small" id="owner" name="owner">
+                        {{range $player := .Players}}
+                            {{ if (eq $player.ID $.FocusEvent.Owner.ID) }}
+                                <option value="{{$player.ID}}" selected="selected">{{$player.PreferredName}}</option>
+                            {{ else }}
+                                <option value="{{$player.ID}}">{{$player.PreferredName}}</option>
+                            {{ end }}
+                        {{end}}
+                    </select>
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label">Options</label>
+                <div class="uk-form-controls">
+                    {{ if .FocusEvent.InviteOnly }}
+                        <label><input class="uk-checkbox" type="checkbox" name="inviteonly" value="inviteonly" checked><span class="uk-text-small"> Invite Only</span></label>
+                    {{ else }}
+                        <label><input class="uk-checkbox" type="checkbox" name="inviteonly" value="inviteonly"><span class="uk-text-small"> Invite Only</span></label>
+                    {{ end }}
+                </div>
+                <div class="uk-form-controls">
+                    {{ if .FocusEvent.PaidEvent }}
+                        <label><input class="uk-checkbox" type="checkbox" name="paidevent" value="paidevent" checked><span class="uk-text-small"> Paid Event</span></label>
+                    {{ else }}
+                        <label><input class="uk-checkbox" type="checkbox" name="paidevent" value="paidevent"><span class="uk-text-small"> Paid Event</span></label>
+                    {{ end }}
+                </div>
+                <div class="uk-form-controls">
+                    <label class="uk-form-label" for="cost">Cost</label>
+                    <input class="uk-input uk-form-small" id="cost" name="cost" type="number" value="{{printf `%.2f` .FocusEvent.Cost}}">
+                </div>
+            </div>
+            <input type="hidden" id="id" name="id" value="{{.FocusEvent.ID}}">
+        </fieldset>
+        <div class="uk-margin">
+            <button class="uk-button uk-button-default uk-button-small" type="button" onClick="showSection('events')">Cancel</button>
+            <button class="uk-button uk-button-primary uk-button-small" id="pebtn" type="submit">Save</button>
+        </div>
+    </form>
+    <hr>
+    <div class="uk-margin">
+        <p class="uk-text uk-text-bolder">Members</p>
+        <table class="uk-table uk-table-small uk-table-middle uk-table-justify uk-table-divider"> 
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Paid</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range $member := .FocusEvent.Members }}
+                    <tr>
+                        <td><span class="uk-text-small">{{$member.Player.PreferredName}}</span></td>
+                        {{ if $member.Paid }}
+                            <td uk-toggle="target: #id-unpaymember-{{$.FocusEvent.ID}}-{{$member.Player.ID}}" uk-tooltip="Mark Unpaid"><span class="uk-margin-small" uk-icon="check"></span></td>
+                        {{ else }}
+                            <td uk-toggle="target: #id-paymember-{{$.FocusEvent.ID}}-{{$member.Player.ID}}" uk-tooltip="Mark Paid"><span class="uk-margin-small" uk-icon="plus-circle"></span></td>
+                        {{ end }}
+                        <td uk-toggle="target: #id-delmember-{{$.FocusEvent.ID}}-{{$member.Player.ID}}" uk-tooltip="Remove Member"><span class="uk-margin-small" uk-icon="trash"></span></td>
+                    </tr>
+                {{ end }}
+            </tbody>
+        </table>
+    </div>
+    <div class="uk-margin">
+        <form enctype="multipart/form-data" method="post" id="addmember" name="addmember" action="/addmember/{{.FocusEvent.ID}}" onsubmit="return submitForm(this, 'eventedit/{{.FocusEvent.ID}}'); return false;"> 
+            <table class="uk-table uk-table-small uk-table-middle uk-table-justify"> 
+
+                <tr>
+                    <td><select class="uk-select uk-form-small" id="newmember" name="newmember">
+                        {{range $player := .Players}}
+                            {{ if not ($.FocusEvent.HasMember $player) }}
+                                <option value="{{$player.ID}}">{{$player.PreferredName}}</option>
+                            {{ end }}
+                        {{end}}
+                    </select></td>
+                    <td><button class="uk-button uk-button-primary uk-button-small" id="ambtn" type="submit">Add</button></td>
+                </tr>
+            </table>
+        </form>
+    </div>
+    <hr>
+    <div class="uk-margin">
+        <p class="uk-text uk-text-bolder">Messages</p>
+        <table class="uk-table uk-table-small uk-table-middle uk-table-justify uk-table-divider"> 
+            <tbody>
+                {{ range $msg := .FocusEvent.Messages }}
+                    <tr>
+                        <td>
+                            <p class="uk-text-small">{{ $msg.Date }} from {{ $msg.Player.PreferredName }}:</p>
+                            <p class="uk-text-small">{{ $msg.Message }}</p>
+                        </td>
+                    </tr>
+                {{ end }}
+            </tbody>
+        </table>
+    </div>
+    <div class="uk-margin">
+        <label class="uk-form-label" for="eventmsg">Send Message</label>
+        <form enctype="multipart/form-data" method="post" id="eventmsg" name="eventmsg" action="/eventmessage/{{$.FocusEvent.ID}}" onsubmit="return submitForm(this, 'eventedit/{{$.FocusEvent.ID}}'); return false;">
+            <div class="uk-form-controls">
+                <textarea class="uk-textarea uk-form-small" rows="3" id="message" name="message" placeholder="Message text..."></textarea>
+            </div>
+            <div class="uk-margin">
+                <button class="uk-button uk-button-primary uk-button-small" id="embtn" type="submit">Send</button>
+            </div>
+        </form>
+    </div>
+</div>

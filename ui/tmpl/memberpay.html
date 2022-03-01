@@ -1,0 +1,12 @@
+{{ range $member := .FocusEvent.Members }}
+<div id="id-paymember-{{$.FocusEvent.ID}}-{{$member.Player.ID}}" uk-modal>
+    <div class="uk-modal-dialog uk-modal-body">
+    <h3>Are you sure you want to mark {{ $member.Player.PreferredName }} as paid for {{$.FocusEvent.Name}}?</h3>
+    <p class="uk-text-small uk-text-muted">{{$member.Player.PreferredName}} will get a text message with this update.</p>
+        <form action="/memberpay/{{$.FocusEvent.ID}}/{{$member.Player.ID}}" method="PUT">
+            <button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
+            <button class="uk-button uk-button-primary uk-button-danger" type="submit">Continue</button>
+        </form>
+    </div>
+</div>
+{{ end }}

@@ -180,6 +180,32 @@ func (p *Player) WriteToken(token string) error {
 	return nil
 }
 
+func (p *Player) RemoveToken() error {
+	db, err := db.DBConnection()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	query := fmt.Sprintf("UPDATE player set token = null WHERE idplayer = %d;\n", p.ID)
+	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
+	res, err := db.ExecContext(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return fmt.Errorf("no token removed")
+	}
+
+	return nil
+}
+
 func (p *Player) UpdatePlayer() error {
 	db, err := db.DBConnection()
 	if err != nil {
@@ -236,6 +262,15 @@ func (p *Player) DeletePlayer() error {
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
+	_, err = db.ExecContext(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	query = fmt.Sprintf("DELETE FROM player WHERE idplayer=%d", p.ID)
+
+	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelfunc()
 	res, err := db.ExecContext(ctx, query)
 	if err != nil {
 		return err
@@ -247,26 +282,20 @@ func (p *Player) DeletePlayer() error {
 	}
 
 	if rows == 0 {
-		return fmt.Errorf("no roles deleted")
-	}
-
-	query = fmt.Sprintf("DELETE FROM player WHERE idplayer=%d", p.ID)
-
-	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelfunc()
-	res, err = db.ExecContext(ctx, query)
-	if err != nil {
-		return err
-	}
-
-	rows, err = res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows == 0 {
-		return fmt.Errorf("no players deleted")
+		return fmt.Errorf("no player deleted")
 	}
 
 	return nil
+}
+
+func (p *Player) HasRole(rolename string) bool {
+	hr := false
+
+	for _, r := range p.Roles {
+		if r == rolename {
+			hr = true
+		}
+	}
+
+	return hr
 }

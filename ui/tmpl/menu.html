@@ -1,48 +1,22 @@
-<div id="offcanvas-slide" uk-offcanvas="overlay: true">
+<div id="offcanvas-slide" uk-offcanvas="overlay: true; bg-close: true">
     <div class="uk-offcanvas-bar">
         <button class="uk-offcanvas-close" type="button" uk-close></button>
         <ul class="uk-iconnav uk-iconnav-vertical">
-            <li>
-                <a href="/">
-                    <span class="uk-icon uk-margin-small-right" uk-icon="icon: home"></span>
-                    Home
-                </a>
+            <li onClick="showSection('home')">
+                <span class="uk-icon uk-margin-small-right" uk-icon="icon: home"></span>
+                <span class="uk-text-small">Home</span>
             </li>
-            <li>
-                <a href="/players">
-                    <span class="uk-icon uk-margin-small-right" uk-icon="icon: user"></span>
-                    Players
-                </a>
+            <li onClick="showSection('players')">
+                <span class="uk-icon uk-margin-small-right" uk-icon="icon: user"></span>
+                <span class="uk-text-small">Players</span>
             </li>
-            <li>
-                <a href="/games">
-                    <span class="uk-icon uk-margin-small-right" uk-icon="icon: play"></span>
-                    Games
-                </a>
+            <li onClick="showSection('events')">
+                <span class="uk-icon uk-margin-small-right" uk-icon="icon: play"></span>
+                <span class="uk-text-small">Events</span>
             </li>
-            <li>
-                <a href="/teams">
-                    <span class="uk-icon uk-margin-small-right" uk-icon="icon: users"></span>
-                    Teams
-                </a>
-            </li>
-            <li>
-                <a href="/scores">
-                    <span class="uk-icon uk-margin-small-right" uk-icon="icon: pencil"></span>
-                    Scores
-                </a>
-            </li>
-            <li>
-                <a href="/stats">
-                    <span class="uk-icon uk-margin-small-right" uk-icon="icon: hashtag"></span>
-                    Stats
-                </a>
-            </li>
-            <li>
-                <a href="/message">
-                    <span class="uk-icon uk-margin-small-right" uk-icon="icon: commenting"></span>
-                    Message
-                </a>
+            <li onClick="showSection('message')">
+                <span class="uk-icon uk-margin-small-right" uk-icon="icon: commenting"></span>
+                <span class="uk-text-small">Message</span>
             </li>
         </ul>
     </div>

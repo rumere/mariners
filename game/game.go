@@ -36,8 +36,6 @@ func (g *Game) AddGame() error {
 	t := time.Now().In(loc)
 	g.Date = t.Format("2006-01-02 03:04")
 
-	fmt.Printf("%#v\n", g)
-
 	query := fmt.Sprintf("INSERT INTO game (idgame, idweather, date, idninthtee, ismatch) VALUES (NULL, %d, \"%s\", %d, %t);\n",
 		g.Weather.ID,
 		g.Date,

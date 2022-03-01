@@ -1,0 +1,63 @@
+<div class="uk-card-body">
+    <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+        <div class="uk-navbar-right">
+            <ul class="uk-iconnav">
+                <li onClick="showSection('events')">
+                    <span class="uk-margin-small" uk-icon="close" uk-tooltip="Close Window"></span>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <legend class="uk-legend">New Event</legend>
+    <form enctype="multipart/form-data" method="post" id="eventadd" name="eventadd" action="/addevent" onsubmit="return submitForm(this); showSection('events'); return false;">
+        <fieldset class="uk-fieldset">
+            <div class="uk-margin">
+                <label class="uk-form-label" for="name">Name</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input" id="name" name="name" type="text" placeholder="Event Name">
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="date">Date</label>
+                <div class="uk-form-controls">
+                    <input class="uk-input" type="datetime-local" id="date" name="date" placeholder="01-31-2022 1:00 PM">
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="desc">Description</label>
+                <div class="uk-form-controls">
+                    <textarea class="uk-textarea" id="desc" name="desc" rows="5" placeholder="Add some information about the event."></textarea>
+                </div>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="owner">Select Owner</label>
+                <select class="uk-select" id="owner" name="owner">
+                    <p>{{printf "%#v" .Players}}</p>
+                    {{range $player := .Players}}
+                        {{ if eq $player.ID $.User.ID }}
+                            <option value="{{$player.ID}}" selected="selected">{{$player.PreferredName}}</option>
+                        {{ else }}
+                            <option value="{{$player.ID}}">{{$player.PreferredName}}</option>
+                        {{ end }}
+                    {{end}}
+                </select>
+            </div>
+            <div class="uk-margin">
+                <label class="uk-form-label" for="role">Event Options</label>
+                <div class="uk-form-controls">
+                    <label><input class="uk-checkbox" type="checkbox" name="paid" value="paid"> Paid Event</label>
+                </div>
+                <div class="uk-form-controls">
+                    <label><input class="uk-input" type="number" name="cost" placeholder="0.00"> Cost</label>
+                </div>
+                <div class="uk-form-controls">
+                    <label><input class="uk-checkbox" type="checkbox" name="invite" value="invite"> Invite Only Event</label>
+                </div>
+            </div>
+        </fieldset>
+        <div class="uk-form-controls">
+            <button class="uk-button uk-button-default uk-button-small" type="button" onClick="showSection('events')">Cancel</button>
+            <button class="uk-button uk-button-primary" type="submit">Save</button>
+        </div>
+    </form>
+</div>

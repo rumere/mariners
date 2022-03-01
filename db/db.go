@@ -91,7 +91,7 @@ func getDSNAWS() string {
 		fmt.Println(err.Error())
 		return ""
 	}
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", u.Username, u.Password, u.Host, u.Port, u.DbInstanceIdentifier)
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", u.Username, u.Password, u.Host, u.Port, u.DbInstanceIdentifier)
 }
 
 func getDSNEnv() string {

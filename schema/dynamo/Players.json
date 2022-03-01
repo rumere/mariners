@@ -1,0 +1,13 @@
+{
+    "PlayerID": "string",
+    "Name": "string",
+    "PreferredName": "string",
+    "Phone": "string",
+    "Email": "string",
+    "Birthday": "string",
+    "GhinNumber": "string",
+    "Roles": [
+        "string1",
+        "string2"
+    ]
+}

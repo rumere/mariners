@@ -1,0 +1,23 @@
+<div class="uk-navbar-right">
+    <ul class="uk-iconnav">
+        <li>
+            <span class="uk-margin-small" uk-icon="cog" uk-tooltip="Settings"></span>
+            <div uk-dropdown="mode: click; pos: left-bottom">
+                <caption class="uk-legend uk-margin-small">{{printf "%s" .User.PreferredName}}</caption>
+                <hr>
+                <ul class="uk-iconnav uk-iconnav-vertical">
+                    <li onClick="showSection('playeredit/{{.User.ID}}')">
+                        <span class="uk-icon uk-margin-small-right" uk-icon="icon: file-edit"></span>
+                        <span class="uk-text-small">Edit Profile</span>
+                    </li>
+                    <li>
+                        <a class="uk-link-reset" href="/logout/{{.User.ID}}">
+                        <span class="uk-icon uk-margin-small-right" uk-icon="icon: sign-out"></span>
+                        <span class="uk-text-small">Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </li>
+    </ul>
+</div>
