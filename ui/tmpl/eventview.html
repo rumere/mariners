@@ -18,15 +18,21 @@
     <table class="uk-table uk-table-small uk-table-middle uk-table-justify">
         <tbody>
             <tr>
-                <td><p class="uk-text uk-text-bolder">Date: </p></td>
+                <td><p class="uk-text uk-text-bolder">Date</p></td>
                 <td><p class="uk-text-small"> {{.FocusEvent.Date}}</p></td>
             </tr>
             <tr><td><p class="uk-text uk-text-bolder">Description</p></td></tr>
             <tr><td colspan="2"><p class="uk-text-small"> {{.FocusEvent.Description}}</p></td></tr>
             <tr>
-                <td><p class="uk-text uk-text-bolder">Owner:</p></td>
+                <td><p class="uk-text uk-text-bolder">Owner</p></td>
                 <td><p class="uk-text-small"> {{.FocusEvent.Owner.PreferredName}}</p></td>
             </tr>
+            {{ if .FocusEvent.PaidEvent }}
+                <tr>
+                    <td><p class="uk-text uk-text-bolder">Cost</p></td>
+                    <td><p class="uk-text-small"> {{printf "$%.2f" .FocusEvent.Cost}}</p></td>
+                </tr>
+            {{ end }}
         </tbody>
     </table>
     <table class="uk-table uk-table-small uk-table-middle uk-table-justify uk-table-divider"> 
@@ -39,19 +45,26 @@
             {{ end }}
         </tbody>
     </table>
-    <table class="uk-table uk-table-small uk-table-middle uk-table-justify uk-table-divider"> 
-        <tbody>
-            <tr><td><p class="uk-text uk-text-bolder">Messages</p></td></tr>
-            {{ range $msg := .FocusEvent.Messages }}
-                <tr>
-                    <td>
-                        <p class="uk-text-small">{{ $msg.Date }} from {{ $msg.Player.PreferredName }}:</p>
-                        <p class="uk-text-small">{{ $msg.Message }}</p>
-                    </td>
-                </tr>
-            {{ end }}
-        </tbody>
-    </table>
+    <hr>
+    <p class="uk-text uk-text-bolder">Messages</p></td></tr>
+    {{ range $msg := .FocusEvent.Messages }}
+        <article class="uk-comment uk-comment-primary">
+            <header class="uk-comment-header">
+                <div class="uk-grid-medium uk-flex-middle" uk-grid>
+                    <div class="uk-width-expand">
+                        <h4 class="uk-comment-title uk-margin-remove">{{$msg.Player.PreferredName}}</h4>
+                        <ul class="uk-comment-meta uk-subnav uk-subnav-divider uk-margin-remove-top">
+                            <li>{{$msg.Date}}</li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+            <div class="uk-comment-body">
+                <p>{{$msg.Message}}
+            </div>
+        </article>
+        <br>
+    {{ end }}
     <hr>
     {{ if .FocusEvent.HasMember .User }}
         <div class="uk-margin">

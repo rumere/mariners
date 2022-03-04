@@ -121,19 +121,25 @@
     </div>
     <hr>
     <div class="uk-margin">
-        <p class="uk-text uk-text-bolder">Messages</p>
-        <table class="uk-table uk-table-small uk-table-middle uk-table-justify uk-table-divider"> 
-            <tbody>
-                {{ range $msg := .FocusEvent.Messages }}
-                    <tr>
-                        <td>
-                            <p class="uk-text-small">{{ $msg.Date }} from {{ $msg.Player.PreferredName }}:</p>
-                            <p class="uk-text-small">{{ $msg.Message }}</p>
-                        </td>
-                    </tr>
-                {{ end }}
-            </tbody>
-        </table>
+        <p class="uk-text uk-text-bolder">Messages</p></td></tr>
+        {{ range $msg := .FocusEvent.Messages }}
+            <article class="uk-comment uk-comment-primary">
+                <header class="uk-comment-header">
+                    <div class="uk-grid-medium uk-flex-middle" uk-grid>
+                        <div class="uk-width-expand">
+                            <h4 class="uk-comment-title uk-margin-remove">{{$msg.Player.PreferredName}}</h4>
+                            <ul class="uk-comment-meta uk-subnav uk-subnav-divider uk-margin-remove-top">
+                                <li>{{$msg.Date}}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </header>
+                <div class="uk-comment-body">
+                    <p>{{$msg.Message}}
+                </div>
+            </article>
+            <br>
+        {{ end }}
     </div>
     <hr>
     <div class="uk-margin">

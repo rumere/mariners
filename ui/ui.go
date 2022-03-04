@@ -49,6 +49,16 @@ func playerHandler(w http.ResponseWriter, r *http.Request, title string, user pl
 	renderTemplate(w, "players", &p)
 }
 
+func playerinfoHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+	p := Page{}
+
+	p.Title = title
+	p.Roles = pagedata.Roles
+	p.User = user
+
+	renderTemplate(w, "playerinfo", &p)
+}
+
 func playereditHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.ParseInt(strid, 10, 64)
@@ -305,6 +315,16 @@ func eventHandler(w http.ResponseWriter, r *http.Request, title string, user pla
 	p.Events = pagedata.Events
 
 	renderTemplate(w, "events", &p)
+}
+
+func eventinfoHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+	p := Page{}
+
+	p.Title = title
+	p.Roles = pagedata.Roles
+	p.User = user
+
+	renderTemplate(w, "eventinfo", &p)
 }
 
 func eventaddHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
@@ -1091,6 +1111,7 @@ func main() {
 	r.HandleFunc("/playerview/{id}", makeHandler(playerviewHandler))
 	r.HandleFunc("/deleteplayer/{id}", makeHandler(deleteplayerHandler))
 	r.HandleFunc("/addplayer", makeHandler(addplayerHandler))
+	r.HandleFunc("/playerinfo", makeHandler(playerinfoHandler))
 
 	r.HandleFunc("/message", makeHandler(messageHandler))
 	r.HandleFunc("/sendmessage/{id}", makeHandler(sendmessageHandler))
@@ -1108,6 +1129,7 @@ func main() {
 	r.HandleFunc("/memberunpay/{id}/{pid}", makeHandler(memberunpayHandler))
 	r.HandleFunc("/eventjoin/{id}/{pid}", makeHandler(eventjoinHandler))
 	r.HandleFunc("/removemember/{id}/{pid}", makeHandler(removememberHandler))
+	r.HandleFunc("/eventinfo", makeHandler(eventinfoHandler))
 
 	r.HandleFunc("/auth", authHandler)
 	r.HandleFunc("/sendcode", sendcodeHandler)
