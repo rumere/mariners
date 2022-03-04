@@ -106,7 +106,6 @@
     <div class="uk-margin">
         <form enctype="multipart/form-data" method="post" id="addmember" name="addmember" action="/addmember/{{.FocusEvent.ID}}" onsubmit="return submitForm(this, 'eventedit/{{.FocusEvent.ID}}'); return false;"> 
             <table class="uk-table uk-table-small uk-table-middle uk-table-justify"> 
-
                 <tr>
                     <td><select class="uk-select uk-form-small" id="newmember" name="newmember">
                         {{range $player := .Players}}
@@ -136,6 +135,7 @@
             </tbody>
         </table>
     </div>
+    <hr>
     <div class="uk-margin">
         <label class="uk-form-label" for="eventmsg">Send Message</label>
         <form enctype="multipart/form-data" method="post" id="eventmsg" name="eventmsg" action="/eventmessage/{{$.FocusEvent.ID}}" onsubmit="return submitForm(this, 'eventedit/{{$.FocusEvent.ID}}'); return false;">

@@ -23,12 +23,23 @@
             </div>
         </div>
         <script>
+
+            function updateCache() {
+                var cacheReq = new XMLHttpRequest();
+
+                cacheReq.open("GET", "/cache", true);
+                cacheReq.send();
+
+                return false;
+            }
+
             function showSection(s) {
                 var sectionReq = new XMLHttpRequest();
 
                 UIkit.offcanvas(document.getElementById("offcanvas-slide")).hide();
 
                 sectionReq.onreadystatechange = function() {
+                    updateCache();
                     if (this.readyState == 4 && this.status == 200) {
                         document.getElementById("focus").innerHTML =
                         this.responseText;
@@ -36,9 +47,11 @@
                 };
                 sectionReq.open("GET", "/" + s, true);
                 sectionReq.send();
+
+                return false;
             }
 
-            function submitForm(eForm, section) {
+            function submitForm(eForm, section, modalid) {
                 var eReq = new XMLHttpRequest(),
                     eData = new FormData(eForm);
 
@@ -46,27 +59,19 @@
                     console.log(value);
                 }
 
-                eReq.onload = UIkit.notification({message: "<span uk-icon='icon: check'></span> Form Submitted!", pos: "top-center"});
+                eReq.onloadend = function() {
+                    if (modalid != "") {
+                        UIkit.modal(document.getElementById(modalid)).hide();
+                    };
+                    UIkit.notification({message: "<span uk-icon='icon: check'></span> Complete!", pos: "top-center"});
+                    showSection(section);
+                };
                 eReq.open("POST", eForm.getAttribute("action"), true);
                 eReq.send(eData);
 
                 return false;
             }
 
-            function submitFormStatic(eForm) {
-                var eReq = new XMLHttpRequest(),
-                    eData = new FormData(eForm);
-
-                for (var value of eData.values()) {
-                    console.log(value);
-                }
-
-                eReq.onload = UIkit.notification({message: "<span uk-icon='icon: check'></span> Form Submitted!", pos: "top-center"});
-                eReq.open("POST", eForm.getAttribute("action"), true);
-                eReq.send(eData);
-
-                return false;
-            }
         </script>
     </body>
 </html>

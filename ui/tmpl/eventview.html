@@ -2,9 +2,15 @@
     <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
         <div class="uk-navbar-right">
             <ul class="uk-iconnav">
+                {{ if or (.User.HasRole "Administrator") (.User.HasRole "Calendar") (eq .FocusEvent.Owner.ID .User.ID) }}
+                    <li onClick="showSection('eventedit/{{.FocusEvent.ID}}')">
+                        <span class="uk-margin-small" uk-icon="file-edit" uk-tooltip="Event"></span>
+                    </li>
+                {{ end }}
                 <li onClick="showSection('events')">
                     <span class="uk-margin-small" uk-icon="close" uk-tooltip="Event"></span>
                 </li>
+
             </ul>
         </div>
     </nav>
@@ -25,7 +31,7 @@
     </table>
     <table class="uk-table uk-table-small uk-table-middle uk-table-justify uk-table-divider"> 
         <tbody>
-            <tr><td><p class="uk-text uk-text-bolder">Members</p></td></tr>
+            <tr><td><p class="uk-text uk-text-bolder">Members <span class="uk-badge">{{ len .FocusEvent.Members }}</span></p></td></tr>
             {{ range $member := .FocusEvent.Members }}
                 <tr>
                     <td><p class="uk-text-small"> {{$member.Player.PreferredName}}
@@ -46,4 +52,18 @@
             {{ end }}
         </tbody>
     </table>
+    <hr>
+    {{ if .FocusEvent.HasMember .User }}
+        <div class="uk-margin">
+            <label class="uk-form-label" for="eventmsg">Send Message</label>
+            <form enctype="multipart/form-data" method="post" id="eventmsg" name="eventmsg" action="/eventmessage/{{$.FocusEvent.ID}}" onsubmit="return submitForm(this, 'eventedit/{{$.FocusEvent.ID}}'); return false;">
+                <div class="uk-form-controls">
+                    <textarea class="uk-textarea uk-form-small" rows="3" id="message" name="message" placeholder="Message text..."></textarea>
+                </div>
+                <div class="uk-margin">
+                    <button class="uk-button uk-button-primary uk-button-small" id="embtn" type="submit">Send</button>
+                </div>
+            </form>
+        </div>
+    {{ end }}
 </div>

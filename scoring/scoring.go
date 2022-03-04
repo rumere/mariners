@@ -1,9 +1,23 @@
-package main
+package scoring
 
-import "fmt"
+import (
+	"mariners/player"
+	"mariners/team"
+)
 
-// scoring takes a player's score for each of nine holes from the command line and inputs it into the database
+type Score struct {
+	Player player.Player
+	TeamID team.Team
+	Scores [9]int
+}
 
-func main() {
-	fmt.Printf("Scoring...\n")
+type MPAverage struct {
+	Player  player.Player
+	Average float64
+	Last20  float64
+}
+
+func (mp *MPAverage) GetAverage() error {
+
+	return nil
 }

@@ -157,6 +157,9 @@ func updateplayerHandler(w http.ResponseWriter, r *http.Request, title string, u
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
 func addplayerHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
@@ -244,7 +247,7 @@ func sendmessageHandler(w http.ResponseWriter, r *http.Request, title string, us
 	a, err := checkPerms(user, "Communications")
 	if err != nil {
 		log.Printf("sendmessageHandler: %s\n", err)
-		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
+		errorHandlerStatus(w, r, err.Error(), http.StatusForbidden)
 		return
 	}
 	if !a {
@@ -278,7 +281,8 @@ func sendmessageHandler(w http.ResponseWriter, r *http.Request, title string, us
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusFound)
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
 func messageHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
@@ -334,7 +338,7 @@ func addeventHandler(w http.ResponseWriter, r *http.Request, title string, user 
 			errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 			return
 		}
-		t, err := time.ParseInLocation("2006-01-02 03:04 PM", fd, loc)
+		t, err := time.ParseInLocation("2006-01-02T15:04", fd, loc)
 		if err != nil {
 			log.Printf("addeventHandler: %s\n", err)
 			errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
@@ -383,6 +387,9 @@ func addeventHandler(w http.ResponseWriter, r *http.Request, title string, user 
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
 func eventeditHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
@@ -500,6 +507,9 @@ func eventupdateHandler(w http.ResponseWriter, r *http.Request, title string, us
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
 func eventmessageHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
@@ -541,6 +551,9 @@ func eventmessageHandler(w http.ResponseWriter, r *http.Request, title string, u
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
 func addmemberHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
@@ -586,6 +599,9 @@ func addmemberHandler(w http.ResponseWriter, r *http.Request, title string, user
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
 func eventjoinHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
@@ -624,6 +640,9 @@ func eventjoinHandler(w http.ResponseWriter, r *http.Request, title string, user
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
 func removememberHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
@@ -662,6 +681,9 @@ func removememberHandler(w http.ResponseWriter, r *http.Request, title string, u
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
 func memberpayHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
@@ -700,6 +722,9 @@ func memberpayHandler(w http.ResponseWriter, r *http.Request, title string, user
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
 func memberunpayHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
@@ -738,6 +763,9 @@ func memberunpayHandler(w http.ResponseWriter, r *http.Request, title string, us
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
 func deleventHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
@@ -770,7 +798,8 @@ func deleventHandler(w http.ResponseWriter, r *http.Request, title string, user 
 		return
 	}
 
-	http.Redirect(w, r, "/events", http.StatusFound)
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
 //Main
@@ -934,7 +963,7 @@ func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 	}
 	err = t.ExecuteTemplate(w, tmpl+".html", p)
 	if err != nil {
-		log.Printf("renderTemplate: %s\n", err)
+		log.Printf("renderTemplate: Execute: %s\n", err)
 		return
 	}
 }
@@ -996,6 +1025,16 @@ func redirectToHTTPS() {
 		}),
 	}
 	log.Println(httpSrv.ListenAndServe())
+}
+
+func cacheHandler(w http.ResponseWriter, r *http.Request) {
+	err := cacheData()
+	if err != nil {
+		log.Println("makeHandler: invalid path")
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
 func cacheData() error {
@@ -1077,6 +1116,7 @@ func main() {
 	r.HandleFunc("/logout/{id}", logoutHandler)
 
 	r.HandleFunc("/error", errorHandler)
+	r.HandleFunc("/cache", cacheHandler)
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 

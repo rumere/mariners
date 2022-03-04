@@ -1,6 +1,15 @@
 <div class="uk-card-body">
+    <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+        <div class="uk-navbar-right">
+            <ul class="uk-iconnav">
+                <li onClick="showSection('events')">
+                    <span class="uk-margin-small" uk-icon="close" uk-tooltip="Event"></span>
+                </li>
+            </ul>
+        </div>
+    </nav>
     <legend class="uk-legend">{{printf "%s" .FocusPlayer.PreferredName}}</legend>
-    <form enctype="multipart/form-data" method="post" id="playeredit" name="playeredit" action="/updateplayer" onsubmit="return submitForm(this, 'playeredit/{{.FocusPlayer.ID}}'); return false;">
+    <form enctype="multipart/form-data" method="post" id="playeredit" name="playeredit" action="/updateplayer" onsubmit="return submitForm(this, 'players'); return false;">
         <fieldset class="uk-fieldset">
             <div class="uk-margin">
                 <label class="uk-form-label" for="name">Name</label>

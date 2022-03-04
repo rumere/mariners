@@ -1,4 +1,32 @@
 <div class="uk-card-body">
-    <h3 class="uk-card-title">Mariner's Point Linksters Home Page</h3>
-    <p>A place on the internets for the Mariner's point crew to share information and data about our fun times.</p>
+    <h3 class="uk-card-title uk-text-center">Welcome To The Mariner's Point Linksters Home Page</h3>
+    <p class="uk-test-muted">A place on the internets for the Mariner's point crew to share information about oll of our fun times.</p>
+    <div class="uk-child-width-3-1" uk-grid>
+        <div class="uk-card uk-card-default uk-card-body">
+            <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+                <div class="uk-navbar-right">
+                    <ul class="uk-iconnav">
+                        <li onClick="showSection('playerinfo')">
+                            <span class="uk-margin-small" uk-icon="question" uk-tooltip="Player Help"></span>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            <h4 class="uk-heading-bullet">Players</h4>
+            <p>The players page <span uk-icon="users" onClick="showSection('players')"></span> lists the people who are active in our actvities.</p>
+        </div>
+        <div class="uk-card uk-card-default uk-card-body">
+            <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+                <div class="uk-navbar-right">
+                    <ul class="uk-iconnav">
+                        <li onClick="showSection('eventinfo')">
+                            <span class="uk-margin-small" uk-icon="question" uk-tooltip="Event Help"></span>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            <h4 class="uk-heading-bullet">Events</h4>
+            <p>The events page <span uk-icon="calendar" onClick="showSection('events')"></span> shows a list of the events that are planned or on-going.</p>
+        </div>
+    </div>
 </div>

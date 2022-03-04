@@ -1,4 +1,4 @@
-<div class="uk-card-body">
+<div class="uk-card-body" id="eventadd">
     <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
         <div class="uk-navbar-right">
             <ul class="uk-iconnav">
@@ -9,12 +9,12 @@
         </div>
     </nav>
     <legend class="uk-legend">New Event</legend>
-    <form enctype="multipart/form-data" method="post" id="eventadd" name="eventadd" action="/addevent" onsubmit="return submitForm(this); showSection('events'); return false;">
+    <form enctype="multipart/form-data" method="post" id="eventadd" name="eventadd" action="/addevent" onsubmit="return submitForm(this, 'events', 'eventadd'); return false;">
         <fieldset class="uk-fieldset">
             <div class="uk-margin">
                 <label class="uk-form-label" for="name">Name</label>
                 <div class="uk-form-controls">
-                    <input class="uk-input" id="name" name="name" type="text" placeholder="Event Name">
+                    <input class="uk-input" id="name" name="name" type="text" placeholder="Event Name" pattern="^[a-zA-Z0-9 ]+$" title="Only alpha-numeric characters and spaces are allowed.">
                 </div>
             </div>
             <div class="uk-margin">
@@ -43,15 +43,16 @@
                 </select>
             </div>
             <div class="uk-margin">
-                <label class="uk-form-label" for="role">Event Options</label>
+                <p>Event Options</p>
+                <div class="uk-form-controls">
+                    <label><input class="uk-checkbox" type="checkbox" name="invite" value="invite"> Invite Only Event</label>
+                </div>
                 <div class="uk-form-controls">
                     <label><input class="uk-checkbox" type="checkbox" name="paid" value="paid"> Paid Event</label>
                 </div>
+                <label class="uk-form-label" for="cost">Cost</label>
                 <div class="uk-form-controls">
-                    <label><input class="uk-input" type="number" name="cost" placeholder="0.00"> Cost</label>
-                </div>
-                <div class="uk-form-controls">
-                    <label><input class="uk-checkbox" type="checkbox" name="invite" value="invite"> Invite Only Event</label>
+                    <input class="uk-input" type="number" name="cost" placeholder="0.00">
                 </div>
             </div>
         </fieldset>

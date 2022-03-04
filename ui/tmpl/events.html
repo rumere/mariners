@@ -21,23 +21,25 @@
         </thead>
         <tbody>
             {{ range $event := .Events }}
-                <tr >
-                    {{ if or ($.User.HasRole "Administrator") ($.User.HasRole "Calendar") (eq $event.Owner.ID $.User.ID) }}
-                        <td onClick="showSection('eventedit/{{$event.ID}}')"><p class="uk-text-small">{{printf "%s" $event.Name}}</p></td>
-                    {{ else }}
+                {{ if or (not $event.InviteOnly) ($event.HasMember $.User) ($.User.HasRole "Administrator") ($.User.HasRole "Calendar") (eq $event.Owner.ID $.User.ID) }}
+                    <tr >
                         <td onClick="showSection('eventview/{{$event.ID}}')"><p class="uk-text-small">{{printf "%s" $event.Name}}</p></td>
-                    {{ end }}
-                    {{ if eq $event.Date "0001-01-01T00:00" }}
-                        <td><p class="uk-text-small">No Date</p></td>
-                    {{ else }}
-                        <td><p class="uk-text-small">{{printf "%s" $event.Date}}</p></td>
-                    {{ end }}
-                    {{ if or ($.User.HasRole "Administrator") ($.User.HasRole "Calendar") (eq $event.Owner.ID $.User.ID) }}
-                        <td uk-toggle="target: #id-eventdel-{{$event.ID}}" uk-tooltip="Delete Event"><span class="uk-margin-small" uk-icon="trash"></span></td>
-                    {{ else }}
-                        <td uk-toggle="target: #id-eventjoin-{{$event.ID}}" uk-tooltip="Join Event"><span class="uk-margin-small" uk-icon="plus-circle"></span></td>
-                    {{ end }}
-                </tr>
+                        {{ if eq $event.Date "0001-01-01T00:00" }}
+                            <td onClick="showSection('eventview/{{$event.ID}}')"><p class="uk-text-small">No Date</p></td>
+                        {{ else }}
+                            <td onClick="showSection('eventview/{{$event.ID}}')"><p class="uk-text-small">{{printf "%s" $event.Date}}</p></td>
+                        {{ end }}
+                        {{ if or ($.User.HasRole "Administrator") ($.User.HasRole "Calendar") (eq $event.Owner.ID $.User.ID) }}
+                            <td uk-toggle="target: #id-eventdel-{{$event.ID}}" uk-tooltip="Delete Event"><span class="uk-margin-small" uk-icon="trash"></span></td>
+                        {{ else }}
+                            {{ if $event.HasMember $.User }}
+                                <td></td>
+                            {{ else }}
+                                <td uk-toggle="target: #id-eventjoin-{{$event.ID}}" uk-tooltip="Join Event"><span class="uk-margin-small" uk-icon="plus-circle"></span></td>
+                            {{ end }}
+                        {{ end }}
+                    </tr>
+                {{ end }}
             {{end}}
         </tbody>
     </table>

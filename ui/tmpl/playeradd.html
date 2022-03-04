@@ -37,13 +37,17 @@
                     <label class="uk-form-label" for="role">Select Roles</label>
                     {{ range $roleid, $rolename := .Roles }}
                         <div class="uk-form-controls">
-                            <label><input class="uk-checkbox" type="checkbox" name="role" value="{{ $roleid }}"><span class="uk-text-small"> {{ $rolename }}</span></label>
+                            {{ if or (eq $rolename "User") (eq $rolename "Communications") }}
+                                <label><input class="uk-checkbox" type="checkbox" name="role" value="{{ $roleid }}" checked><span class="uk-text-small"> {{ $rolename }}</span></label>
+                            {{ else }}
+                                <label><input class="uk-checkbox" type="checkbox" name="role" value="{{ $roleid }}"><span class="uk-text-small"> {{ $rolename }}</span></label>
+                            {{ end }}
                         </div>
                     {{ end }}
                 </div>
             {{ else }}
                 <input type="hidden" name="role" value="1">
-            {{ end }}}}
+            {{ end }}
         </fieldset>
         <div uk-margin>
             <button class="uk-button uk-button-default uk-button-small" type="button" onClick="showSection('players')">Cancel</button>

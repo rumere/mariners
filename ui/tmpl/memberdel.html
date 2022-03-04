@@ -3,7 +3,7 @@
     <div class="uk-modal-dialog uk-modal-body">
         <h3>Are you sure you want to remove {{ $member.Player.PreferredName }} from {{$.FocusEvent.Name}}?</h3>
         <p class="uk-text-small uk-text-muted">{{$member.Player.PreferredName}} will get a text message with this update.</p>
-        <form action="/removemember/{{$.FocusEvent.ID}}/{{$member.Player.ID}}" method="DELETE" onsubmit="return submitForm(this, 'eventedit/{{$.FocusEvent.ID}}'); return false;">
+        <form action="/removemember/{{$.FocusEvent.ID}}/{{$member.Player.ID}}" method="DELETE" onsubmit="return submitForm(this, 'eventedit/{{$.FocusEvent.ID}}', 'id-delmember-{{$.FocusEvent.ID}}-{{$member.Player.ID}}'); return false;">
             <button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
             <button class="uk-button uk-button-primary uk-button-danger" type="submit">Continue</button>
         </form>

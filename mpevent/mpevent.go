@@ -157,13 +157,13 @@ func (e *Event) AddMember(id int64, paid bool) error {
 
 	// TODO: sms stuff should be handled by ui.go
 	if (paid) || (e.Cost == 0) {
-		msg := fmt.Sprintf("You have been added and marked as paid for %s.", e.Name)
+		msg := fmt.Sprintf("You have been added to the event \"%s\".", e.Name)
 		_, err := sms.SendTextPhone(msg, phone)
 		if err != nil {
 			return err
 		}
 	} else {
-		msg := fmt.Sprintf("You have been added to %s, but marked as NOT paid.  The cost is $%.2f.  Please see %s to pay!", e.Name, e.Cost, e.Owner.PreferredName)
+		msg := fmt.Sprintf("You have been added to \"%s\".  The cost is $%.2f.  Please see %s to pay!", e.Name, e.Cost, e.Owner.PreferredName)
 		_, err := sms.SendTextPhone(msg, phone)
 		if err != nil {
 			return err
