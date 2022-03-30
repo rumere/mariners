@@ -13,17 +13,17 @@
         <div class="uk-card-media-top uk-margin-top">
             <img class="uk-align-center" src="static/img/mp.png" alt="">
         </div>
-        <div class="uk-container uk-container-center uk-margin-top uk-box-shadow-small" id="focus">
+        <div class="uk-container uk-container-center uk-margin-top uk-box-shadow-small uk-text-large" id="focus">
             <div class="uk-card-body">
-                <h3 class="uk-card-title">Mariner's Point Linksters Login</h3>
-                <p>Instead of passwords, this site will use your phone to authenticate.  You will recieve a text message with a link to login.  Thanks!</p>
+                <h3 class="uk-card-title uk-text-large">Mariner's Point Linksters Login</h3>
+                <p class="uk-text-large">Instead of passwords, this site will use your phone to authenticate.  You will recieve a text message with a link to login.  Thanks!</p>
                 <form action="/sendcode" method="POST">
                     <fieldset class="uk-fieldset">
                         <legend class="uk-legend">Login!</legend>
                         <div class="uk-margin">
-                            <label class="uk-form-label" for="ninth-tee">Select Your Name</label>
+                            <label class="uk-text-uppercase uk-text-muted uk-text-large">Select Your Name</label>
                             <div class="uk-form-controls">
-                                <select class="uk-select" id="player" name="player">
+                                <select class="uk-select uk-form-large" id="player" name="player">
                                     {{range $player := .Players}}
                                         <option value="{{$player.ID}}">{{$player.PreferredName}}</option>
                                     {{end}}

@@ -6,39 +6,39 @@
         <div class="uk-navbar-right">
             <ul class="uk-iconnav">
                 <li onClick="showSection('eventedit/{{.FocusEvent.ID}}')">
-                    <span class="uk-margin-small" uk-icon="refresh" uk-tooltip="Refresh Page"></span>
+                    <span class="uk-margin-small" uk-icon="icon: refresh; ratio: {{.User.IconRatio}}" uk-tooltip="Refresh Page"></span>
                 </li>
                 <li onClick="showSection('events')">
-                    <span class="uk-margin-small" uk-icon="close" uk-tooltip="Close Window"></span>
+                    <span class="uk-margin-small" uk-icon="icon: close; ratio: {{.User.IconRatio}}" uk-tooltip="Close Window"></span>
                 </li>
             </ul>
         </div>
     </nav>
-    <legend class="uk-legend">{{printf "%s" .FocusEvent.Name}}</legend>
-    <form enctype="multipart/form-data" method="post" id="eventedit" name="eventedit" action="/eventupdate" onsubmit="return submitForm(this, 'events'); return false;">
+    <legend class="uk-legend {{.User.TextPreference}}">{{printf "%s" .FocusEvent.Name}}</legend>
+    <form enctype="multipart/form-data" method="put" id="eventedit" name="eventedit" action="/form/putevent/{{.FocusEvent.ID}}" onsubmit="return submitForm(this, 'events'); return false;">
         <fieldset class="uk-fieldset">
             <div class="uk-margin">
-                <label class="uk-form-label" for="name">Name</label>
+                <label class="uk-form-label {{.User.TextPreference}}" for="name">Name</label>
                 <div class="uk-form-controls">
-                    <input class="uk-input uk-form-small" id="name" name="name" type="text" value="{{.FocusEvent.Name}}">
+                    <input class="uk-input {{.User.FormSize}}" id="name" name="name" type="text" value="{{.FocusEvent.Name}}">
                 </div>
             </div>
             <div class="uk-margin">
-                <label class="uk-form-label" for="preferred-name">Description</label>
+                <label class="uk-form-label {{.User.TextPreference}}" for="preferred-name">Description</label>
                 <div class="uk-form-controls">
-                    <textarea class="uk-textarea uk-form-small" rows="3" id="description" name="description">{{.FocusEvent.Description}}</textarea>
+                    <textarea class="uk-textarea {{.User.FormSize}}" rows="3" id="description" name="description">{{.FocusEvent.Description}}</textarea>
                 </div>
             </div>
             <div class="uk-margin">
-                <label class="uk-form-label" for="phone">Date</label>
+                <label class="uk-form-label {{.User.TextPreference}}" for="phone">Date</label>
                 <div class="uk-form-controls">
-                    <input class="uk-input uk-form-small" id="date" name="date" type="datetime-local" value="{{.FocusEvent.Date}}">
+                    <input class="uk-input {{.User.FormSize}}" id="date" name="date" type="datetime-local" value="{{.FocusEvent.Date}}">
                 </div>
             </div>
             <div class="uk-margin">
-                <label class="uk-form-label" for="owner">Owner</label>
+                <label class="uk-form-label {{.User.TextPreference}}" for="owner">Owner</label>
                 <div class="uk-form-controls">
-                    <select class="uk-select uk-form-small" id="owner" name="owner">
+                    <select class="uk-select {{.User.FormSize}}" id="owner" name="owner">
                         {{range $player := .Players}}
                             {{ if (eq $player.ID $.FocusEvent.Owner.ID) }}
                                 <option value="{{$player.ID}}" selected="selected">{{$player.PreferredName}}</option>
@@ -92,10 +92,14 @@
                 {{ range $member := .FocusEvent.Members }}
                     <tr>
                         <td><span class="uk-text-small">{{$member.Player.PreferredName}}</span></td>
-                        {{ if $member.Paid }}
+                        {{ if and $member.Paid $.FocusEvent.PaidEvent }}
                             <td uk-toggle="target: #id-unpaymember-{{$.FocusEvent.ID}}-{{$member.Player.ID}}" uk-tooltip="Mark Unpaid"><span class="uk-margin-small" uk-icon="check"></span></td>
                         {{ else }}
-                            <td uk-toggle="target: #id-paymember-{{$.FocusEvent.ID}}-{{$member.Player.ID}}" uk-tooltip="Mark Paid"><span class="uk-margin-small" uk-icon="plus-circle"></span></td>
+                            {{ if $.FocusEvent.PaidEvent }}
+                                <td uk-toggle="target: #id-paymember-{{$.FocusEvent.ID}}-{{$member.Player.ID}}" uk-tooltip="Mark Paid"><span class="uk-margin-small" uk-icon="plus-circle"></span></td>
+                            {{ else }}
+                                <td></td>
+                            {{ end }}
                         {{ end }}
                         <td uk-toggle="target: #id-delmember-{{$.FocusEvent.ID}}-{{$member.Player.ID}}" uk-tooltip="Remove Member"><span class="uk-margin-small" uk-icon="trash"></span></td>
                     </tr>
@@ -104,7 +108,7 @@
         </table>
     </div>
     <div class="uk-margin">
-        <form enctype="multipart/form-data" method="post" id="addmember" name="addmember" action="/addmember/{{.FocusEvent.ID}}" onsubmit="return submitForm(this, 'eventedit/{{.FocusEvent.ID}}'); return false;"> 
+        <form enctype="multipart/form-data" method="post" id="addmember" name="addmember" action="/form/postmember/{{.FocusEvent.ID}}" onsubmit="return submitForm(this, 'eventedit/{{.FocusEvent.ID}}'); return false;"> 
             <table class="uk-table uk-table-small uk-table-middle uk-table-justify"> 
                 <tr>
                     <td><select class="uk-select uk-form-small" id="newmember" name="newmember">
@@ -144,9 +148,9 @@
     <hr>
     <div class="uk-margin">
         <label class="uk-form-label" for="eventmsg">Send Message</label>
-        <form enctype="multipart/form-data" method="post" id="eventmsg" name="eventmsg" action="/eventmessage/{{$.FocusEvent.ID}}" onsubmit="return submitForm(this, 'eventedit/{{$.FocusEvent.ID}}'); return false;">
+        <form enctype="multipart/form-data" method="post" id="eventmsg" name="eventmsg" action="/form/posteventmessage/{{$.FocusEvent.ID}}" onsubmit="return submitForm(this, 'eventedit/{{$.FocusEvent.ID}}'); return false;">
             <div class="uk-form-controls">
-                <textarea class="uk-textarea uk-form-small" rows="3" id="message" name="message" placeholder="Message text..."></textarea>
+                <textarea class="uk-textarea uk-form-small" rows="3" maxlength="100" id="message" name="message" placeholder="Message text..."></textarea>
             </div>
             <div class="uk-margin">
                 <button class="uk-button uk-button-primary uk-button-small" id="embtn" type="submit">Send</button>

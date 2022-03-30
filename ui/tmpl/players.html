@@ -1,21 +1,21 @@
 <div class="uk-card-body">
-    {{ if or ($.User.HasRole "Administrator") ($.User.HasRole "Roster") }}
+    {{ if or (.User.HasRole "Administrator") (.User.HasRole "Roster") }}
         <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
             <div class="uk-navbar-right">
                 <ul class="uk-iconnav">
                     <li onClick="showSection('playeradd')">
-                        <span class="uk-margin-small" uk-icon="plus" uk-tooltip="Add Player"></span>
+                        <span class="uk-margin-small" uk-icon="icon: plus; ratio: {{.User.IconRatio}}" uk-tooltip="Add Player"></span>
                     </li>
                 </ul>
             </div>
         </nav>
     {{ end }}
-    <table class="uk-table uk-table-small uk-table-middle uk-table-justify uk-table-hover uk-table-divider ">
-        <label class="uk-margin-small-top">Mariner's Point Linksters Roster</label>
+    <table class="uk-table uk-table-middle uk-table-justify uk-table-hover uk-table-divider ">
+        <label class="uk-margin-small-top {{.User.TextPreference}}">Mariner's Point Linksters Roster</label>
         <thead>
             <tr>
-                <th>Name</th>
-                <th>Phone</th>
+                <th><p class="{{.User.TextPreference}}">Name</p></th>
+                <th><p class="{{.User.TextPreference}}">Phone</p></th>
                 {{ if or ($.User.HasRole "Administrator") ($.User.HasRole "Roster") }}
                     <th></th>
                 {{ end }}
@@ -28,14 +28,14 @@
                 {{ else }}
                     <tr onClick="showSection('playerview/{{$player.ID}}')">
                 {{ end }}
-                        <td><p class="uk-text-small">{{printf "%s" $player.PreferredName}}</p></td>
-                        <td><p class="uk-text-small">{{printf "%s" $player.Phone}}</p></td>
+                        <td><p class="{{$.User.TextPreference}}">{{printf "%s" $player.PreferredName}}</p></td>
+                        <td><p class="{{$.User.TextPreference}}">{{printf "%s" $player.Phone}}</p></td>
                         {{ if or ($.User.HasRole "Administrator") ($.User.HasRole "Roster") }}
-                            <td uk-toggle="target: #id-del-{{$player.ID}}" uk-tooltip="Delete Player"><span class="uk-margin-small" uk-icon="trash"></span></td>
+                            <td uk-toggle="target: #id-del-{{$player.ID}}" uk-tooltip="Delete Player"><span class="uk-margin-small" uk-icon="icon: trash; ratio: {{$.User.IconRatio}}"></span></td>
                         {{ end }}
                     </tr>
             {{end}}
         </tbody>
     </table>
 </div>
-{{ template "deleteplayer.html" . }}
+{{ template "playerdel.html" . }}

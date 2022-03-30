@@ -1,19 +1,19 @@
 <div class="uk-navbar-right">
     <ul class="uk-iconnav">
         <li>
-            <span class="uk-margin-small" uk-icon="cog" uk-tooltip="Settings"></span>
+            <span class="uk-margin-small" uk-icon="icon: cog; ratio: {{.User.IconRatio}}" uk-tooltip="Settings"></span>
             <div uk-dropdown="mode: click; pos: left-bottom">
-                <caption class="uk-legend uk-margin-small">{{printf "%s" .User.PreferredName}}</caption>
+                <p class="uk-legend uk-margin-small {{.User.TextPreference}}">{{printf "%s" .User.PreferredName}}</p>
                 <hr>
                 <ul class="uk-iconnav uk-iconnav-vertical">
                     <li onClick="showSection('playeredit/{{.User.ID}}')">
-                        <span class="uk-icon uk-margin-small-right" uk-icon="icon: file-edit"></span>
-                        <span class="uk-text-small">Edit Profile</span>
+                        <span class="uk-icon uk-margin-small-right" uk-icon="icon: file-edit; ratio: {{.User.IconRatio}}"></span>
+                        <span class="{{.User.TextPreference}}">Edit Profile</span>
                     </li>
                     <li>
                         <a class="uk-link-reset" href="/logout/{{.User.ID}}">
-                        <span class="uk-icon uk-margin-small-right" uk-icon="icon: sign-out"></span>
-                        <span class="uk-text-small">Logout</span>
+                        <span class="uk-icon uk-margin-small-right" uk-icon="icon: sign-out; ratio: {{.User.IconRatio}}"></span>
+                        <span class="{{.User.TextPreference}}">Logout</span>
                         </a>
                     </li>
                 </ul>

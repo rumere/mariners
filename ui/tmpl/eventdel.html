@@ -1,9 +1,9 @@
 {{ range $event := .Events }}
 <div id="id-eventdel-{{$event.ID}}" uk-modal>
     <div class="uk-modal-dialog uk-modal-body">
-    <h3>Are you sure you want to delete {{$event.Name}}?</h3>
-    <p class="uk-text-small uk-text-muted">Members will get a text message with this update.</p>
-        <form action="/delevent/{{$event.ID}}" method="DELETE" onsubmit="return submitForm(this, 'events', 'id-eventdel-{{$event.ID}}'); return false;">
+    <h3 class="{{$.User.TextPreference}}">Are you sure you want to delete {{$event.Name}}?</h3>
+    <p class="{{$.User.TextPreference}} uk-text-muted">Members will get a text message with this update.</p>
+        <form action="/form/delevent/{{$event.ID}}" method="DELETE" onsubmit="return submitForm(this, 'events', 'id-eventdel-{{$event.ID}}'); return false;">
             <button class="uk-button uk-button-default uk-modal-close" type="button">Cancel</button>
             <button class="uk-button uk-button-danger" type="submit">Continue</button>
         </form>

@@ -1,0 +1,35 @@
+<div class="uk-card-body">
+    <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+        <div class="uk-navbar-right">
+            <ul class="uk-iconnav">
+                <li onClick="showSection('home')">
+                    <span class="uk-margin-small" uk-icon="icon: close; ratio: 1.5" uk-tooltip="Settings"></span>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <h3 class="uk-heading {{.User.TextPreference}}">Scores Help</h3>
+    <p>Scores is a table of the players in the club and their scoring average when playing in the 
+    afternoon group.</p>
+    <hr>
+    <dl class="uk-description-list">
+        <dt class="{{.User.TextPreference}}">Rank</dt>
+        <dd>
+            <p class="{{.User.TextPreference}}">This is the player's current rank among the group using their last 20 rounds.</p>
+        </dd>
+        <dt class="{{.User.TextPreference}}">Name</dt>
+        <dd>
+            <p class="{{.User.TextPreference}}">This is the player's nickname.  Most features use nicknames as that is typically the name 
+            that is most familiar to the group.</p>
+            <p class="uk-text-light">Example: Cowboy</p>
+        </dd>
+        <dt class="{{.User.TextPreference}}">2022 Average</dt>
+        <dd>
+            <p class="{{.User.TextPreference}}">This is the player's average for this year.</p>
+        </dd>
+        <dt class="{{.User.TextPreference}}">Last 20 Average</dt>
+        <dd>
+            <p class="{{.User.TextPreference}}">This is the player's average for their last 20 rounds.</p>
+        <dd>
+    </dl>
+</div>

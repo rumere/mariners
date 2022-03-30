@@ -2,54 +2,74 @@
     <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
         <div class="uk-navbar-right">
             <ul class="uk-iconnav">
-                <li onClick="showSection('events')">
-                    <span class="uk-margin-small" uk-icon="close" uk-tooltip="Event"></span>
+                <li onClick="showSection('players')">
+                    <span class="uk-margin-small" uk-icon="icon: close; ratio: {{.User.IconRatio }}" uk-tooltip="Close"></span>
                 </li>
             </ul>
         </div>
     </nav>
-    <legend class="uk-legend">{{printf "%s" .FocusPlayer.PreferredName}}</legend>
-    <form enctype="multipart/form-data" method="post" id="playeredit" name="playeredit" action="/updateplayer" onsubmit="return submitForm(this, 'players'); return false;">
+    <legend class="uk-legend {{.User.TextPreference}}">{{printf "%s" .FocusPlayer.PreferredName}}</legend>
+    <form enctype="multipart/form-data" method="put" id="playeredit" name="playeredit" action="/form/putplayer" onsubmit="return submitForm(this, 'home'); return false;">
         <fieldset class="uk-fieldset">
             <div class="uk-margin">
-                <label class="uk-form-label" for="name">Name</label>
+                <label class="uk-form-label {{.User.TextPreference}}" for="name">Name</label>
                 <div class="uk-form-controls">
-                    <input class="uk-input uk-form-small" id="name" name="name" type="text" value="{{.FocusPlayer.Name}}">
+                    <input class="uk-input uk-form-small {{.User.FormSize}}" id="name" name="name" type="text" value="{{.FocusPlayer.Name}}">
                 </div>
             </div>
             <div class="uk-margin">
-                <label class="uk-form-label" for="preferred-name">Preferred Name</label>
+                <label class="uk-form-label {{.User.TextPreference}}" for="preferred-name">Preferred Name</label>
                 <div class="uk-form-controls">
-                    <input class="uk-input uk-form-small" id="preferred-name" name="preferred-name" type="text" value="{{.FocusPlayer.PreferredName}}">
+                    <input class="uk-input uk-form-small {{.User.FormSize}}" id="preferred-name" name="preferred-name" type="text" value="{{.FocusPlayer.PreferredName}}">
                 </div>
             </div>
             <div class="uk-margin">
-                <label class="uk-form-label" for="phone">Phone Number</label>
+                <label class="uk-form-label {{.User.TextPreference}}" for="phone">Phone Number</label>
                 <div class="uk-form-controls">
-                    <input class="uk-input uk-form-small" id="phone" name="phone" type="tel" value="{{.FocusPlayer.Phone}}">
+                    <input class="uk-input {{.User.FormSize}}" id="phone" name="phone" type="tel" value="{{.FocusPlayer.Phone}}">
                 </div>
             </div>
             <div class="uk-margin">
-                <label class="uk-form-label" for="email">Email</label>
+                <label class="uk-form-label {{.User.TextPreference}}" for="email">Email</label>
                 <div class="uk-form-controls">
-                    <input class="uk-input uk-form-small" id="email" name="email" type="email" value="{{.FocusPlayer.Email}}">
+                    <input class="uk-input {{.User.FormSize}}" id="email" name="email" type="email" value="{{.FocusPlayer.Email}}">
                 </div>
             </div>
             <div class="uk-margin">
-                <label class="uk-form-label" for="ghin-number">GHIN Number</label>
+                <label class="uk-form-label {{.User.TextPreference}}" for="ghin-number">GHIN Number</label>
                 <div class="uk-form-controls">
-                    <input class="uk-input uk-form-small" id="ghin-number" name="ghin-number" type="text" value="{{.FocusPlayer.GhinNumber}}">
+                    <input class="uk-input {{.User.FormSize}}" id="ghin-number" name="ghin-number" type="text" value="{{.FocusPlayer.GhinNumber}}">
                 </div>
             </div>
+            {{ if eq .FocusPlayer.ID $.User.ID }}
+                <label class="uk-form-label {{.User.TextPreference}}" for="ghin-number">Text Preference</label>
+                <div class="uk-form-controls">
+                    {{ if eq .FocusPlayer.TextPreference "uk-text-small" }}
+                        <label class="uk-text-small"><input class="uk-radio" type="radio" name="text-size" value="uk-text-small" checked> Small</label>
+                    {{ else }}
+                        <label class="uk-text-small"><input class="uk-radio" type="radio" name="text-size" value="uk-text-small"> Small</label>
+                    {{ end }}
+                    {{ if eq .FocusPlayer.TextPreference "uk-text-default" }}
+                        <label class="uk-text-default"><input class="uk-radio" type="radio" name="text-size" value="uk-text-default" checked> Normal</label>
+                    {{ else }}
+                        <label class="uk-text-default"><input class="uk-radio" type="radio" name="text-size" value="uk-text-default"> Normal</label>
+                    {{ end }}
+                    {{ if eq .FocusPlayer.TextPreference "uk-text-large" }}
+                        <label class="uk-text-large"><input class="uk-radio" type="radio" name="text-size" value="uk-text-large" checked> Large</label>
+                    {{ else }}
+                        <label class="uk-text-large"><input class="uk-radio" type="radio" name="text-size" value="uk-text-large"> Large</label>
+                    {{ end }}
+                </div>
+            {{ end }}
             {{ if ($.User.HasRole "Administrator") }}
                 <div class="uk-margin">
-                    <label class="uk-form-label" for="role">Select Roles</label>
+                    <label class="uk-form-label {{.User.TextPreference}}" for="role">Select Roles</label>
                     {{ range $roleid, $rolename := .Roles }}
                         <div class="uk-form-controls">
                             {{ if (index $.FocusPlayer.Roles $roleid) }}
-                                <label><input class="uk-checkbox" type="checkbox" name="role" value="{{ $roleid }}" checked><span class="uk-text-small"> {{ $rolename }}</span></label>
+                                <label class="uk-form-label {{$.User.TextPreference}}"><input class="uk-checkbox {{$.User.FormSize}}" type="checkbox" name="role" value="{{ $roleid }}" checked><span class="uk-text-small"> {{ $rolename }}</span></label>
                             {{ else }}
-                                <label><input class="uk-checkbox" type="checkbox" name="role" value="{{ $roleid }}"><span class="uk-text-small"> {{ $rolename }}</span></label>
+                                <label class="uk-form-label {{$.User.TextPreference}}"><input class="uk-checkbox {{$.User.FormSize}}" type="checkbox" name="role" value="{{ $roleid }}"><span class="uk-text-small"> {{ $rolename }}</span></label>
                             {{ end }}
                         </div>
                     {{ end }}

@@ -1,0 +1,34 @@
+<div class="uk-card-body">
+    <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+        <div class="uk-navbar-right">
+            <ul class="uk-iconnav">
+                <li onClick="showSection('home')">
+                    <span class="uk-margin-small" uk-icon="icon: close; ratio: {{.User.IconRatio}}" uk-tooltip="Close"></span>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <table class="uk-table uk-table-middle uk-table-justify uk-table-hover uk-table-divider ">
+        <label class="uk-margin-small-top {{.User.TextPreference}}">Mariner's Point Linksters Scores</label>
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Name</th>
+                <th>2022 Avg</th>
+                <th>Last 20 Avg</th>
+                <th>Rounds</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{range $player := .Scores}}
+                <tr onClick="showSection('playerview/{{$player.Player.ID}}')">
+                    <td><p class="{{$.User.TextPreference}}">{{printf "%d" $player.Rank}}</p></td>
+                    <td><p class="{{$.User.TextPreference}}">{{printf "%s" $player.Player.PreferredName}}</p></td>
+                    <td><p class="{{$.User.TextPreference}}">{{printf "%.2f" $player.Average}}</p></td>
+                    <td><p class="{{$.User.TextPreference}}">{{printf "%.2f" $player.Last20}}</p></td>
+                    <td><p class="{{$.User.TextPreference}}">{{printf "%d" $player.Rounds}}</p></td>
+                </tr>
+            {{end}}
+        </tbody>
+    </table>
+</div>

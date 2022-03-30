@@ -7,6 +7,7 @@ import (
 	"mariners/mpevent"
 	"mariners/player"
 	"mariners/role"
+	"mariners/scoring"
 	"mariners/sms"
 	"math/rand"
 	"net"
@@ -26,6 +27,7 @@ type Page struct {
 	Players     player.Players
 	Roles       role.Roles
 	Events      mpevent.Events
+	Scores      scoring.MPAverages
 	User        player.Player
 	FocusPlayer player.Player
 	FocusEvent  mpevent.Event
@@ -34,6 +36,18 @@ type Page struct {
 type MemberPage struct {
 	Event mpevent.Event
 	User  player.Player
+}
+
+func (p *Page) MessageTime() bool {
+	loc, err := time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		return false
+	}
+	t := time.Now().In(loc)
+	if t.Hour() <= 8 && t.Hour() >= 20 {
+		return false
+	}
+	return true
 }
 
 var pagedata Page
@@ -106,10 +120,10 @@ func playeraddHandler(w http.ResponseWriter, r *http.Request, title string, user
 	renderTemplate(w, "playeradd", &p)
 }
 
-func updateplayerHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+func putPlayerHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	err := r.ParseMultipartForm(1 << 20)
 	if err != nil {
-		log.Printf("updateplayerHandler: %s\n", err)
+		log.Printf("putPlayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -119,7 +133,7 @@ func updateplayerHandler(w http.ResponseWriter, r *http.Request, title string, u
 	log.Printf("updateplayerHandler: FormData: %#v\n", r.Form)
 	id, err := strconv.ParseInt(strid, 10, 64)
 	if err != nil {
-		log.Printf("updateplayerHandler: %s\n", err)
+		log.Printf("putPlayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -130,18 +144,19 @@ func updateplayerHandler(w http.ResponseWriter, r *http.Request, title string, u
 	p.Email = r.FormValue("email")
 	p.GhinNumber = r.FormValue("ghin-number")
 	p.Roles = make(role.Roles)
+	p.TextPreference = r.FormValue("text-size")
 
 	for _, strid := range r.Form["role"] {
 		rid, err := strconv.Atoi(strid)
 		if err != nil {
-			log.Printf("updateplayerHandler: %s\n", err)
+			log.Printf("putPlayerHandler: %s\n", err)
 			errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		fr, err := role.GetRoleByID(int64(rid))
 		if err != nil {
-			log.Printf("updateplayerHandler: %s\n", err)
+			log.Printf("putPlayerHandler: %s\n", err)
 			errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -152,18 +167,16 @@ func updateplayerHandler(w http.ResponseWriter, r *http.Request, title string, u
 		}
 	}
 
-	log.Printf("AddPlayer form values: %#v", p)
-
 	err = p.UpdatePlayer()
 	if err != nil {
-		log.Printf("updateplayerHandler: %s\n", err)
+		log.Printf("putPlayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = cacheData()
 	if err != nil {
-		log.Printf("updateplayerHandler: %s\n", err)
+		log.Printf("putPlayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -172,7 +185,7 @@ func updateplayerHandler(w http.ResponseWriter, r *http.Request, title string, u
 	r.Body.Close()
 }
 
-func addplayerHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+func postPlayerHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	p := player.Player{}
 
 	err := r.ParseMultipartForm(1 << 20)
@@ -221,10 +234,11 @@ func addplayerHandler(w http.ResponseWriter, r *http.Request, title string, user
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusFound)
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
-func deleteplayerHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+func delPlayerHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
@@ -249,11 +263,12 @@ func deleteplayerHandler(w http.ResponseWriter, r *http.Request, title string, u
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusFound)
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
 }
 
 // Messages
-func sendmessageHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+func postMessageHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	a, err := checkPerms(user, "Communications")
 	if err != nil {
 		log.Printf("sendmessageHandler: %s\n", err)
@@ -284,11 +299,72 @@ func sendmessageHandler(w http.ResponseWriter, r *http.Request, title string, us
 	msg := fmt.Sprintf("Message from %s: ", p.PreferredName)
 	msg += r.FormValue("message")
 
-	_, err = sms.SendTextTopic(msg, "arn:aws:sns:us-east-1:939932615330:MPLINKSTERS")
+	//_, err = sms.SendTextTopic(msg, sms.MainTopicARN)
+	//if err != nil {
+	// 	log.Printf("sendmessageHandler: %s\n", err)
+	//	errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
+	//	return
+	//}
+
+	for _, p := range pagedata.Players {
+		if p.HasRole("User") {
+			num, err := phonenumbers.Parse(p.Phone, "US")
+			if err != nil {
+				log.Printf("sendmessageHandler: %s\n", err)
+				continue
+			}
+			phone := phonenumbers.Format(num, phonenumbers.E164)
+			sms.SendTextPhone(msg, phone)
+			time.Sleep(time.Second)
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
+}
+
+func postTournamentMessageHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+	a, err := checkPerms(user, "Communications")
+	if err != nil {
+		log.Printf("sendmessageHandler: %s\n", err)
+		errorHandlerStatus(w, r, err.Error(), http.StatusForbidden)
+		return
+	}
+	if !a {
+		log.Printf("sendmessageHandler: %s\n", err)
+		errorHandlerStatus(w, r, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	strid := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(strid)
+	if err != nil {
+		log.Printf("sendmessageHandler: %s\n", err)
+		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	p := player.Player{}
+	err = p.GetPlayerByID(int64(id))
 	if err != nil {
 		log.Printf("sendmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	msg := fmt.Sprintf("Message from %s: ", p.PreferredName)
+	msg += r.FormValue("message")
+
+	for _, p := range pagedata.Players {
+		if p.HasRole("User") && p.HasRole("Tournament") {
+			num, err := phonenumbers.Parse(p.Phone, "US")
+			if err != nil {
+				log.Printf("sendmessageHandler: %s\n", err)
+				continue
+			}
+			phone := phonenumbers.Format(num, phonenumbers.E164)
+			sms.SendTextPhone(msg, phone)
+			time.Sleep(time.Second)
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -303,6 +379,16 @@ func messageHandler(w http.ResponseWriter, r *http.Request, title string, user p
 	p.Players = pagedata.Players
 
 	renderTemplate(w, "message", &p)
+}
+
+func messageinfoHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+	p := Page{}
+
+	p.Title = title
+	p.Roles = pagedata.Roles
+	p.User = user
+
+	renderTemplate(w, "messageinfo", &p)
 }
 
 // Events
@@ -337,7 +423,50 @@ func eventaddHandler(w http.ResponseWriter, r *http.Request, title string, user 
 	renderTemplate(w, "eventadd", &p)
 }
 
-func addeventHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+func eventeditHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+	p := Page{}
+
+	strid := mux.Vars(r)["id"]
+	id, err := strconv.ParseInt(strid, 10, 64)
+	if err != nil {
+		log.Printf("eventeditHandler: %s\n", err)
+		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
+	p.FocusEvent.GetEventByID(id)
+
+	p.Title = title
+	p.Roles = pagedata.Roles
+	p.User = user
+	p.FocusPlayer.GetPlayerByID(id)
+	p.Players = pagedata.Players
+	p.Events = pagedata.Events
+
+	renderTemplate(w, "eventedit", &p)
+}
+
+func eventviewHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+	p := Page{}
+
+	strid := mux.Vars(r)["id"]
+	id, err := strconv.ParseInt(strid, 10, 64)
+	if err != nil {
+		log.Printf("eventviewHandler: %s\n", err)
+		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
+	p.FocusEvent.GetEventByID(id)
+
+	p.Title = title
+	p.Roles = pagedata.Roles
+	p.User = user
+	p.Players = pagedata.Players
+	p.Events = pagedata.Events
+
+	renderTemplate(w, "eventview", &p)
+}
+
+func postEventHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	e := mpevent.Event{}
 
 	err := r.ParseMultipartForm(1 << 20)
@@ -412,50 +541,7 @@ func addeventHandler(w http.ResponseWriter, r *http.Request, title string, user 
 	r.Body.Close()
 }
 
-func eventeditHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
-	p := Page{}
-
-	strid := mux.Vars(r)["id"]
-	id, err := strconv.ParseInt(strid, 10, 64)
-	if err != nil {
-		log.Printf("eventeditHandler: %s\n", err)
-		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
-		return
-	}
-	p.FocusEvent.GetEventByID(id)
-
-	p.Title = title
-	p.Roles = pagedata.Roles
-	p.User = user
-	p.FocusPlayer.GetPlayerByID(id)
-	p.Players = pagedata.Players
-	p.Events = pagedata.Events
-
-	renderTemplate(w, "eventedit", &p)
-}
-
-func eventviewHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
-	p := Page{}
-
-	strid := mux.Vars(r)["id"]
-	id, err := strconv.ParseInt(strid, 10, 64)
-	if err != nil {
-		log.Printf("eventviewHandler: %s\n", err)
-		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
-		return
-	}
-	p.FocusEvent.GetEventByID(id)
-
-	p.Title = title
-	p.Roles = pagedata.Roles
-	p.User = user
-	p.Players = pagedata.Players
-	p.Events = pagedata.Events
-
-	renderTemplate(w, "eventview", &p)
-}
-
-func eventupdateHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+func putEventHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	err := r.ParseMultipartForm(1 << 20)
 	if err != nil {
 		log.Printf("eventupdateHandler: %s\n", err)
@@ -532,7 +618,41 @@ func eventupdateHandler(w http.ResponseWriter, r *http.Request, title string, us
 	r.Body.Close()
 }
 
-func eventmessageHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+func delEventHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+	strid := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(strid)
+	if err != nil {
+		log.Printf("deleventHandler: %s\n", err)
+		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	e := mpevent.Event{}
+	err = e.GetEventByID(int64(id))
+	if err != nil {
+		log.Printf("deleventHandler: %s\n", err)
+		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = e.DeleteEvent()
+	if err != nil {
+		log.Printf("deleventHandler: %s\n", err)
+		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = cacheData()
+	if err != nil {
+		log.Printf("deleventHandler: %s\n", err)
+		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	r.Body.Close()
+}
+
+func postEventMessageHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
@@ -576,7 +696,7 @@ func eventmessageHandler(w http.ResponseWriter, r *http.Request, title string, u
 	r.Body.Close()
 }
 
-func addmemberHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+func postMemberHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
@@ -624,7 +744,7 @@ func addmemberHandler(w http.ResponseWriter, r *http.Request, title string, user
 	r.Body.Close()
 }
 
-func eventjoinHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+func putMemberJoinHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
@@ -665,7 +785,7 @@ func eventjoinHandler(w http.ResponseWriter, r *http.Request, title string, user
 	r.Body.Close()
 }
 
-func removememberHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+func delMemberHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	strid := mux.Vars(r)["id"]
 	strpid := mux.Vars(r)["pid"]
 	id, err := strconv.Atoi(strid)
@@ -706,7 +826,7 @@ func removememberHandler(w http.ResponseWriter, r *http.Request, title string, u
 	r.Body.Close()
 }
 
-func memberpayHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+func putMemberPayHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	strid := mux.Vars(r)["id"]
 	strpid := mux.Vars(r)["pid"]
 	id, err := strconv.Atoi(strid)
@@ -747,7 +867,7 @@ func memberpayHandler(w http.ResponseWriter, r *http.Request, title string, user
 	r.Body.Close()
 }
 
-func memberunpayHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+func putMemberUnpayHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	strid := mux.Vars(r)["id"]
 	strpid := mux.Vars(r)["pid"]
 	id, err := strconv.Atoi(strid)
@@ -788,47 +908,50 @@ func memberunpayHandler(w http.ResponseWriter, r *http.Request, title string, us
 	r.Body.Close()
 }
 
-func deleventHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
-	strid := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(strid)
-	if err != nil {
-		log.Printf("deleventHandler: %s\n", err)
-		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
-		return
-	}
+//Scoring
+func scoresHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+	p := Page{}
 
-	e := mpevent.Event{}
-	err = e.GetEventByID(int64(id))
+	ss, err := scoring.GetAverages()
 	if err != nil {
-		log.Printf("deleventHandler: %s\n", err)
-		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = e.DeleteEvent()
-	if err != nil {
-		log.Printf("deleventHandler: %s\n", err)
+		log.Printf("scoresHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = cacheData()
-	if err != nil {
-		log.Printf("deleventHandler: %s\n", err)
-		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	p.Title = title
+	p.User = user
+	p.Roles = pagedata.Roles
+	p.Players = pagedata.Players
+	p.Events = pagedata.Events
+	p.Scores = ss
 
-	w.WriteHeader(http.StatusOK)
-	r.Body.Close()
+	renderTemplate(w, "scores", &p)
+}
+
+func scoresinfoHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+	p := Page{}
+
+	p.Title = title
+	p.Roles = pagedata.Roles
+	p.User = user
+
+	renderTemplate(w, "scoresinfo", &p)
 }
 
 //Main
 func indexHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	p := Page{}
 
-	p.Title = title
-	p.Roles = pagedata.Roles
+	if title == "" {
+		p.Title = "home"
+	} else {
+		p.Title = title
+	}
 	p.User = user
+	p.Roles = pagedata.Roles
+	p.Players = pagedata.Players
+	p.Events = pagedata.Events
 
 	renderTemplate(w, "index", &p)
 }
@@ -968,13 +1091,14 @@ func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 		"tmpl/header.html",
 		"tmpl/menu.html",
 		"tmpl/home.html",
+		"tmpl/wait.html",
 		"tmpl/profilemenu.html",
 		"tmpl/error.html",
-		"tmpl/deleteplayer.html",
+		"tmpl/playerdel.html",
 		"tmpl/memberpay.html",
 		"tmpl/memberunpay.html",
 		"tmpl/memberdel.html",
-		"tmpl/eventjoin.html",
+		"tmpl/memberjoin.html",
 		"tmpl/eventdel.html",
 		"tmpl/"+tmpl+".html")
 	if err != nil {
@@ -998,16 +1122,17 @@ func checkPerms(p player.Player, n string) (bool, error) {
 	return false, nil
 }
 
-var validPath = regexp.MustCompile("^/(ui|players|playeredit|playerview|updateplayer|addplayer|deleteplayer|events|editevent|addevent|delevent|addmember|addmemberedit|removemember|updatemember|games|auth|sendcode|verify|maketoken|message|sendmessage)?")
+var validPath = regexp.MustCompile("^/(ui|players|playeredit|playerview|updateplayer|addplayer|deleteplayer|events|editevent|addevent|delevent|addmember|addmemberedit|removemember|updatemember|games|auth|sendcode|verify|maketoken|message|sendmessage|addalluser|scores|scoresinfo)?")
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, string, player.Player)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := validPath.FindStringSubmatch(r.URL.Path)
 		if m == nil {
-			log.Println("makeHandler: invalid path")
+			log.Printf("makeHandler: invalid path: %s", m[1])
 			http.NotFound(w, r)
 			return
 		}
+		log.Printf("Path found: %s\n", m[1])
 
 		token, err := r.Cookie("token")
 		if err != nil || token == nil {
@@ -1017,6 +1142,7 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string, player.Play
 
 		user := player.Player{}
 		err = user.GetPlayerByToken(token.Value)
+		log.Printf("%#v\n", user)
 		if err != nil {
 			http.Redirect(w, r, "/auth", http.StatusFound)
 			return
@@ -1050,11 +1176,20 @@ func redirectToHTTPS() {
 func cacheHandler(w http.ResponseWriter, r *http.Request) {
 	err := cacheData()
 	if err != nil {
-		log.Println("makeHandler: invalid path")
+		log.Printf("cacheHandler: %s", err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 	r.Body.Close()
+}
+
+func addAllUserHandler(w http.ResponseWriter, r *http.Request) {
+	err := player.AddRoleAll(1)
+	if err != nil {
+		log.Printf("addAllUserHandler: %s", err)
+		return
+	}
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func cacheData() error {
@@ -1102,34 +1237,48 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", makeHandler(indexHandler))
-	r.HandleFunc("/home", makeHandler(homeHandler))
 
-	r.HandleFunc("/players", makeHandler(playerHandler))
-	r.HandleFunc("/updateplayer", makeHandler(updateplayerHandler))
-	r.HandleFunc("/playeradd", makeHandler(playeraddHandler))
-	r.HandleFunc("/playeredit/{id}", makeHandler(playereditHandler))
-	r.HandleFunc("/playerview/{id}", makeHandler(playerviewHandler))
-	r.HandleFunc("/deleteplayer/{id}", makeHandler(deleteplayerHandler))
-	r.HandleFunc("/addplayer", makeHandler(addplayerHandler))
-	r.HandleFunc("/playerinfo", makeHandler(playerinfoHandler))
+	sr := r.PathPrefix("/render").Subrouter()
+	fr := r.PathPrefix("/form").Subrouter()
 
-	r.HandleFunc("/message", makeHandler(messageHandler))
-	r.HandleFunc("/sendmessage/{id}", makeHandler(sendmessageHandler))
+	sr.HandleFunc("/home", makeHandler(homeHandler))
 
-	r.HandleFunc("/events", makeHandler(eventHandler))
-	r.HandleFunc("/addevent", makeHandler(addeventHandler))
-	r.HandleFunc("/eventedit/{id}", makeHandler(eventeditHandler)).Methods("GET")
-	r.HandleFunc("/eventmessage/{id}", makeHandler(eventmessageHandler))
-	r.HandleFunc("/eventupdate", makeHandler(eventupdateHandler))
-	r.HandleFunc("/eventview/{id}", makeHandler(eventviewHandler))
-	r.HandleFunc("/eventadd", makeHandler(eventaddHandler))
-	r.HandleFunc("/delevent/{id}", makeHandler(deleventHandler))
-	r.HandleFunc("/addmember/{id}", makeHandler(addmemberHandler))
-	r.HandleFunc("/memberpay/{id}/{pid}", makeHandler(memberpayHandler))
-	r.HandleFunc("/memberunpay/{id}/{pid}", makeHandler(memberunpayHandler))
-	r.HandleFunc("/eventjoin/{id}/{pid}", makeHandler(eventjoinHandler))
-	r.HandleFunc("/removemember/{id}/{pid}", makeHandler(removememberHandler))
-	r.HandleFunc("/eventinfo", makeHandler(eventinfoHandler))
+	sr.HandleFunc("/players", makeHandler(playerHandler))
+	sr.HandleFunc("/playeradd", makeHandler(playeraddHandler))
+	sr.HandleFunc("/playeredit/{id}", makeHandler(playereditHandler))
+	sr.HandleFunc("/playerview/{id}", makeHandler(playerviewHandler))
+	sr.HandleFunc("/playerinfo", makeHandler(playerinfoHandler))
+
+	fr.HandleFunc("/postplayer", makeHandler(postPlayerHandler)).Methods("POST")
+	fr.HandleFunc("/putplayer", makeHandler(putPlayerHandler)).Methods("PUT")
+	fr.HandleFunc("/delplayer/{id}", makeHandler(delPlayerHandler)).Methods("DELETE")
+
+	sr.HandleFunc("/message", makeHandler(messageHandler))
+	sr.HandleFunc("/messageinfo", makeHandler(messageinfoHandler))
+
+	fr.HandleFunc("/postmessage/{id}", makeHandler(postMessageHandler)).Methods("POST")
+	fr.HandleFunc("/posttournymessage/{id}", makeHandler(postTournamentMessageHandler)).Methods("POST")
+
+	sr.HandleFunc("/events", makeHandler(eventHandler))
+	sr.HandleFunc("/eventadd", makeHandler(eventaddHandler))
+	sr.HandleFunc("/eventedit/{id}", makeHandler(eventeditHandler))
+	sr.HandleFunc("/eventview/{id}", makeHandler(eventviewHandler))
+	sr.HandleFunc("/eventinfo", makeHandler(eventinfoHandler))
+
+	fr.HandleFunc("/postevent", makeHandler(postEventHandler)).Methods("POST")
+	fr.HandleFunc("/putevent/{id}", makeHandler(putEventHandler)).Methods("PUT")
+	fr.HandleFunc("/delevent/{id}", makeHandler(delEventHandler)).Methods("DELETE")
+
+	fr.HandleFunc("/postmember/{id}", makeHandler(postMemberHandler)).Methods("POST")
+	fr.HandleFunc("/postmemberjoin/{id}/{pid}", makeHandler(putMemberJoinHandler)).Methods("POST")
+	fr.HandleFunc("/putmemberpay/{id}/{pid}", makeHandler(putMemberPayHandler)).Methods("PUT")
+	fr.HandleFunc("/putmemberunpay/{id}/{pid}", makeHandler(putMemberUnpayHandler)).Methods("PUT")
+	fr.HandleFunc("/delmember/{id}/{pid}", makeHandler(delMemberHandler)).Methods("DELETE")
+
+	fr.HandleFunc("/posteventmessage/{id}", makeHandler(postEventMessageHandler)).Methods("POST")
+
+	sr.HandleFunc("/scores", makeHandler(scoresHandler))
+	sr.HandleFunc("/scoresinfo", makeHandler(scoresinfoHandler))
 
 	r.HandleFunc("/auth", authHandler)
 	r.HandleFunc("/sendcode", sendcodeHandler)
@@ -1139,6 +1288,7 @@ func main() {
 
 	r.HandleFunc("/error", errorHandler)
 	r.HandleFunc("/cache", cacheHandler)
+	r.HandleFunc("/addalluser", addAllUserHandler)
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 

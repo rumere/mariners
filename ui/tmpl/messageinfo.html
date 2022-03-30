@@ -1,0 +1,31 @@
+<div class="uk-card-body">
+    <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+        <div class="uk-navbar-right">
+            <ul class="uk-iconnav">
+                <li onClick="showSection('home')">
+                    <span class="uk-margin-small" uk-icon="icon: close; ratio: 1.5" uk-tooltip="Settings"></span>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <h3 class="uk-heading">Message Help</h3>
+    <p>The message page is used to send out announcements to the entire group of players.  <mark>
+    Please use this function responsibly.<mark></p>
+    <hr>
+    <dl class="uk-description-list">
+        <dt>Message</dt>
+        <dd>
+            <p>Just type your message in the text box and hit send! Only SMS text messages can be 
+            sent, so you can't share your pictures or documents dicrectly.  <mark>Messages are 
+            limited to 100 characters, and can only be sent from 8 AM to 8 PM PT</mark>
+        </dd>
+        {{ if .User.HasRole "Tournament" }}
+            <dt>Tournament Message</dt>
+            <dd>
+                <p>Use this section to send a message to golfers who are eligable for competative 
+                tournaments.  It's visibility and the list of users is controlled by the 
+                <code>Tournament</code> role.
+            </dd>
+        {{ end }}
+    </dl>
+</div>

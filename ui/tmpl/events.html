@@ -1,21 +1,21 @@
-<div class="uk-card-body">
-    {{ template "eventjoin.html" . }}
+<div class="uk-card-body {{.User.TextPreference}}">
+    {{ template "memberjoin.html" . }}
     {{ template "eventdel.html" . }}
     <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
         <div class="uk-navbar-right">
             <ul class="uk-iconnav">
                 <li onClick="showSection('eventadd')">
-                    <span class="uk-margin-small" uk-icon="plus" uk-tooltip="Add Event"></span>
+                    <span class="uk-margin-small" uk-icon="icon: plus; ratio: {{.User.IconRatio}}" uk-tooltip="Add Event"></span>
                 </li>
             </ul>
         </div>
     </nav>
-    <table class="uk-table uk-table-small uk-table-middle uk-table-justify uk-table-hover uk-table-divider ">
+    <table class="uk-table uk-table-middle uk-table-justify uk-table-hover uk-table-divider">
         <label class="uk-margin-small-top">Mariner's Point Linksters Events</label>
         <thead>
             <tr>
-                <th>Name</th>
-                <th>Date</th>
+                <th><p class="{{.User.TextPreference}}">Name</p></th>
+                <th><p class="{{.User.TextPreference}}">Date</p></th>
                 <th></th>
             </tr>
         </thead>
@@ -23,19 +23,19 @@
             {{ range $event := .Events }}
                 {{ if or (not $event.InviteOnly) ($event.HasMember $.User) ($.User.HasRole "Administrator") ($.User.HasRole "Calendar") (eq $event.Owner.ID $.User.ID) }}
                     <tr >
-                        <td onClick="showSection('eventview/{{$event.ID}}')"><p class="uk-text-small">{{printf "%s" $event.Name}}</p></td>
+                        <td onClick="showSection('eventview/{{$event.ID}}')"><p>{{printf "%s" $event.Name}}</p></td>
                         {{ if eq $event.Date "0001-01-01T00:00" }}
-                            <td onClick="showSection('eventview/{{$event.ID}}')"><p class="uk-text-small">No Date</p></td>
+                            <td onClick="showSection('eventview/{{$event.ID}}')"><p>No Date</p></td>
                         {{ else }}
-                            <td onClick="showSection('eventview/{{$event.ID}}')"><p class="uk-text-small">{{printf "%s" $event.Date}}</p></td>
+                            <td onClick="showSection('eventview/{{$event.ID}}')"><p>{{printf "%s" $event.Date}}</p></td>
                         {{ end }}
                         {{ if or ($.User.HasRole "Administrator") ($.User.HasRole "Calendar") (eq $event.Owner.ID $.User.ID) }}
-                            <td uk-toggle="target: #id-eventdel-{{$event.ID}}" uk-tooltip="Delete Event"><span class="uk-margin-small" uk-icon="trash"></span></td>
+                            <td uk-toggle="target: #id-eventdel-{{$event.ID}}" uk-tooltip="Delete Event"><span class="uk-margin-small" uk-icon="icon: trash; ratio: {{$.User.IconRatio}}"></span></td>
                         {{ else }}
                             {{ if $event.HasMember $.User }}
                                 <td></td>
                             {{ else }}
-                                <td uk-toggle="target: #id-eventjoin-{{$event.ID}}" uk-tooltip="Join Event"><span class="uk-margin-small" uk-icon="plus-circle"></span></td>
+                                <td uk-toggle="target: #id-memberjoin-{{$event.ID}}" uk-tooltip="Join Event"><span class="uk-margin-small" uk-icon="icon: plus-circle; ratio: {{$.User.IconRatio}}"></span></td>
                             {{ end }}
                         {{ end }}
                     </tr>

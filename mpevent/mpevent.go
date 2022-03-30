@@ -268,9 +268,19 @@ func (e *Event) SendEventMessage(msg string, sid int64) error {
 	p := player.Player{}
 	p.GetPlayerByID(sid)
 	text := fmt.Sprintf("Message from %s: %s", p.PreferredName, msg)
-	mid, err := sms.SendTextTopic(text, e.TopicArn)
-	if err != nil {
-		return err
+	//	mid, err := sms.SendTextTopic(text, e.TopicArn)
+	//	if err != nil {
+	//		return err
+	//	}
+
+	for _, m := range e.Members {
+		num, err := phonenumbers.Parse(m.Player.Phone, "US")
+		if err != nil {
+			return err
+		}
+		phone := phonenumbers.Format(num, phonenumbers.E164)
+		sms.SendTextPhone(text, phone)
+		time.Sleep(time.Second)
 	}
 
 	m := EventMessage{}
@@ -282,7 +292,6 @@ func (e *Event) SendEventMessage(msg string, sid int64) error {
 	m.Date = t.Format("2006-01-02T15:04")
 	m.Message = text
 	m.Player = p
-	m.MessageID = mid
 	e.Messages = append(e.Messages, m)
 
 	db, err := db.DBConnection()
@@ -291,12 +300,11 @@ func (e *Event) SendEventMessage(msg string, sid int64) error {
 	}
 	defer db.Close()
 
-	query := fmt.Sprintf("INSERT INTO event_messages (idevent, idsender, message, date, idmessage) VALUES (%d, %d, \"%s\", \"%s\", \"%s\")",
+	query := fmt.Sprintf("INSERT INTO event_messages (idevent, idsender, message, date, idmessage) VALUES (%d, %d, \"%s\", \"%s\", \"\")",
 		e.ID,
 		m.Player.ID,
 		m.Message,
-		m.Date,
-		m.MessageID)
+		m.Date)
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
 	_, err = db.ExecContext(ctx, query)

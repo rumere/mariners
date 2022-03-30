@@ -4,11 +4,11 @@
             <ul class="uk-iconnav">
                 {{ if or (.User.HasRole "Administrator") (.User.HasRole "Calendar") (eq .FocusEvent.Owner.ID .User.ID) }}
                     <li onClick="showSection('eventedit/{{.FocusEvent.ID}}')">
-                        <span class="uk-margin-small" uk-icon="file-edit" uk-tooltip="Event"></span>
+                        <span class="uk-margin-small" uk-icon="file-edit" uk-tooltip="Edit Event"></span>
                     </li>
                 {{ end }}
                 <li onClick="showSection('events')">
-                    <span class="uk-margin-small" uk-icon="close" uk-tooltip="Event"></span>
+                    <span class="uk-margin-small" uk-icon="close" uk-tooltip="Close"></span>
                 </li>
 
             </ul>
@@ -69,9 +69,9 @@
     {{ if .FocusEvent.HasMember .User }}
         <div class="uk-margin">
             <label class="uk-form-label" for="eventmsg">Send Message</label>
-            <form enctype="multipart/form-data" method="post" id="eventmsg" name="eventmsg" action="/eventmessage/{{$.FocusEvent.ID}}" onsubmit="return submitForm(this, 'eventedit/{{$.FocusEvent.ID}}'); return false;">
+            <form enctype="multipart/form-data" method="post" id="eventmsg" name="eventmsg" action="/form/posteventmessage/{{$.FocusEvent.ID}}" onsubmit="return submitForm(this, 'eventedit/{{$.FocusEvent.ID}}'); return false;">
                 <div class="uk-form-controls">
-                    <textarea class="uk-textarea uk-form-small" rows="3" id="message" name="message" placeholder="Message text..."></textarea>
+                    <textarea class="uk-textarea uk-form-small" rows="3" maxlength="100" id="message" name="message" placeholder="Message text..."></textarea>
                 </div>
                 <div class="uk-margin">
                     <button class="uk-button uk-button-primary uk-button-small" id="embtn" type="submit">Send</button>

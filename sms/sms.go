@@ -11,6 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 )
 
+const MainTopicARN = "arn:aws:sns:us-east-1:939932615330:Mariners"
+
 // SNSPublishAPI defines the interface for the Publish function.
 // We use this interface to test the function using a mocked service.
 type SNSPublishAPI interface {
@@ -51,6 +53,7 @@ func SendTextPhone(msg string, phone string) (string, error) {
 	}
 
 	log.Println("Message ID: " + *result.MessageId)
+	log.Printf("%#v\n", *result)
 
 	return *result.MessageId, nil
 }
@@ -75,6 +78,7 @@ func SendTextTopic(msg string, topicARN string) (string, error) {
 	}
 
 	log.Println("Message ID: " + *result.MessageId)
+	log.Printf("%#v\n", *result)
 
 	return *result.MessageId, nil
 }

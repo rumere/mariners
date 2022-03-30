@@ -6,4 +6,16 @@
     <link rel="shortcut icon" type="image/png" href="static/img/mp.png"/>
     <script src="static/js/uikit.min.js"></script>
     <script src="static/js/uikit-icons.min.js"></script>
+    <style>
+        div.main th,
+        div.main td,
+        div.main p,
+        div.main h2,
+        div.main h3,
+        div.main h4,
+        div.main legend,
+        div.main caption {
+            {{.User.TextPreference}}
+        }
+    </style>
 </head>

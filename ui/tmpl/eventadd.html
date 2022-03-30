@@ -3,35 +3,35 @@
         <div class="uk-navbar-right">
             <ul class="uk-iconnav">
                 <li onClick="showSection('events')">
-                    <span class="uk-margin-small" uk-icon="close" uk-tooltip="Close Window"></span>
+                    <span class="uk-margin-small" uk-icon="icon: close; ratio: {{.User.IconRatio}}" uk-tooltip="Close Window"></span>
                 </li>
             </ul>
         </div>
     </nav>
-    <legend class="uk-legend">New Event</legend>
-    <form enctype="multipart/form-data" method="post" id="eventadd" name="eventadd" action="/addevent" onsubmit="return submitForm(this, 'events', 'eventadd'); return false;">
+    <legend class="uk-legend {{.User.TextPreference}}">New Event</legend>
+    <form enctype="multipart/form-data" method="post" id="eventadd" name="eventadd" action="/form/postevent" onsubmit="return submitForm(this, 'events', 'eventadd'); return false;">
         <fieldset class="uk-fieldset">
             <div class="uk-margin">
-                <label class="uk-form-label" for="name">Name</label>
+                <label class="uk-form-label {{.User.TextPreference}}" for="name">Name</label>
                 <div class="uk-form-controls">
-                    <input class="uk-input" id="name" name="name" type="text" placeholder="Event Name" pattern="^[a-zA-Z0-9 ]+$" title="Only alpha-numeric characters and spaces are allowed.">
+                    <input class="uk-input {{.User.FormSize}}" id="name" name="name" type="text" placeholder="Event Name" pattern="^[a-zA-Z0-9 ]+$" title="Only alpha-numeric characters and spaces are allowed.">
                 </div>
             </div>
             <div class="uk-margin">
-                <label class="uk-form-label" for="date">Date</label>
+                <label class="uk-form-label {{.User.TextPreference}}" for="date">Date</label>
                 <div class="uk-form-controls">
-                    <input class="uk-input" type="datetime-local" id="date" name="date" placeholder="01-31-2022 1:00 PM">
+                    <input class="uk-input {{.User.FormSize}}" type="datetime-local" id="date" name="date" placeholder="01-31-2022 1:00 PM">
                 </div>
             </div>
             <div class="uk-margin">
-                <label class="uk-form-label" for="desc">Description</label>
+                <label class="uk-form-label {{.User.TextPreference}}" for="desc">Description</label>
                 <div class="uk-form-controls">
-                    <textarea class="uk-textarea" id="desc" name="desc" rows="5" placeholder="Add some information about the event."></textarea>
+                    <textarea class="uk-textarea {{.User.FormSize}}" id="desc" name="desc" rows="5" placeholder="Add some information about the event."></textarea>
                 </div>
             </div>
             <div class="uk-margin">
-                <label class="uk-form-label" for="owner">Select Owner</label>
-                <select class="uk-select" id="owner" name="owner">
+                <label class="uk-form-label {{.User.TextPreference}}" for="owner">Select Owner</label>
+                <select class="uk-select {{.User.FormSize}}" id="owner" name="owner">
                     <p>{{printf "%#v" .Players}}</p>
                     {{range $player := .Players}}
                         {{ if eq $player.ID $.User.ID }}
@@ -45,19 +45,19 @@
             <div class="uk-margin">
                 <p>Event Options</p>
                 <div class="uk-form-controls">
-                    <label><input class="uk-checkbox" type="checkbox" name="invite" value="invite"> Invite Only Event</label>
+                    <label class="uk-form-label {{.User.TextPreference}}"><input class="uk-checkbox {{.User.FormSize}}" type="checkbox" name="invite" value="invite"> Invite Only Event</label>
                 </div>
                 <div class="uk-form-controls">
-                    <label><input class="uk-checkbox" type="checkbox" name="paid" value="paid"> Paid Event</label>
+                    <label class="uk-form-label {{.User.TextPreference}}"><input class="uk-checkbox {{.User.FormSize}}" type="checkbox" name="paid" value="paid"> Paid Event</label>
                 </div>
-                <label class="uk-form-label" for="cost">Cost</label>
+                <label class="uk-form-label {{.User.TextPreference}}" for="cost">Cost</label>
                 <div class="uk-form-controls">
-                    <input class="uk-input" type="number" name="cost" placeholder="0.00">
+                    <input class="uk-input {{.User.FormSize}}" type="number" name="cost" placeholder="0.00">
                 </div>
             </div>
         </fieldset>
         <div class="uk-form-controls">
-            <button class="uk-button uk-button-default uk-button-small" type="button" onClick="showSection('events')">Cancel</button>
+            <button class="uk-button uk-button-default" type="button" onClick="showSection('events')">Cancel</button>
             <button class="uk-button uk-button-primary" type="submit">Save</button>
         </div>
     </form>

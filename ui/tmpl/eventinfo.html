@@ -1,4 +1,13 @@
-<div class="uk-card-body">
+<div class="uk-card-body {{.User.TextPreference}} {{.User.FormSize}}">
+    <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+        <div class="uk-navbar-right">
+            <ul class="uk-iconnav">
+                <li onClick="showSection('home')">
+                    <span class="uk-margin-small" uk-icon="icon: close; ratio: 1.5" uk-tooltip="Settings"></span>
+                </li>
+            </ul>
+        </div>
+    </nav>
     <h3 class="uk-heading">Event Help</h3>
     <p>The events page lists the events that have been created by club members.  Events have 
     features, such as weather or not they require money, or if they are invite only.  Any user can 
@@ -9,9 +18,9 @@
     <dl class="uk-description-list">
         <dt>Name</dt>
         <dd>
-            <p>This is the event name which will show up messages setnt to members.  The event name 
-            can only use letters, numbers, and spaces - so be sure to leave out any special 
-            characters when creating an event.</p>
+            <p>This is the event name which will show up in messages sent to members, and on the 
+            events list page.  The event name can only use letters, numbers, and spaces - so be 
+            sure to leave out any special characters when creating an event.</p>
         </dd>
         <dt>Date</dt>
         <dd>

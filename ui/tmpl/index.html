@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html>
-    {{ template "header.html" }} 
-    <body>
-        {{ template "menu.html" }}
+    {{ template "header.html" . }} 
+    <body onload="showSection('{{.Title}}')">
+        {{ template "menu.html" . }}
+        {{ template "wait.html" . }}
         <div class="uk-container uk-margin">
             <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
                 <div class="uk-navbar-left">
                     <ul class="uk-iconnav">
-                        <li><span class="uk-margin-small" uk-icon="menu" uk-tooltip="Menu" uk-toggle="target: #offcanvas-slide"></span></li>
-                        <li><span class="uk-margin-small" uk-icon="home" uk-tooltip="Home" onClick="showSection('home')"></span></li>
-                        <li><span class="uk-margin-small" uk-icon="users" uk-tooltip="Players" onClick="showSection('players')"></span></li>
-                        <li><span class="uk-margin-small" uk-icon="calendar" uk-tooltip="Events" onClick="showSection('events')"></span></li>
-                        <li><span class="uk-margin-small" uk-icon="comment" uk-tooltip="Messages" onClick="showSection('message')"></span></li>
+                        <li><span class="uk-margin-small" uk-icon="icon: menu; ratio: {{.User.IconRatio}}" uk-tooltip="Menu" uk-toggle="target: #offcanvas-slide"></span></li>
+                        <li><span class="uk-margin-small" uk-icon="icon: home; ratio: {{.User.IconRatio}}" uk-tooltip="Home" onClick="showSection('home')"></span></li>
+                        <li><span class="uk-margin-small" uk-icon="icon: users; ratio: {{.User.IconRatio}}" uk-tooltip="Players" onClick="showSection('players')"></span></li>
+                        <li><span class="uk-margin-small" uk-icon="icon: calendar; ratio: {{.User.IconRatio}}" uk-tooltip="Events" onClick="showSection('events')"></span></li>
+                        <li><span class="uk-margin-small" uk-icon="icon: comment; ratio: {{.User.IconRatio}}" uk-tooltip="Messages" onClick="showSection('message')"></span></li>
+                        <li><span class="uk-margin-small" uk-icon="icon: file-text; ratio: {{.User.IconRatio}}" uk-tooltip="Scores" onClick="showSection('scores')"></span></li>
                     </ul>
                 </div>
                 {{ template "profilemenu.html" . }}
@@ -19,8 +21,7 @@
             <div class="uk-card-media-top uk-margin-top">
                 <img class="uk-align-center" src="static/img/mp.png" alt="">
             </div>
-            <div class="uk-container uk-container-center uk-margin-top uk-box-shadow-small" id="focus">
-                {{ template "home.html" . }}
+            <div class="uk-container uk-container-center uk-margin-top uk-box-shadow-small uk-flex-expand uk-overflow-auto" id="focus">
             </div>
         </div>
         <script>
@@ -44,9 +45,12 @@
                     if (this.readyState == 4 && this.status == 200) {
                         document.getElementById("focus").innerHTML =
                         this.responseText;
+                        window.scrollTo(0, 0);
+                    } else {
+                        document.window.location = "/error";
                     }
                 };
-                sectionReq.open("GET", "/" + s, true);
+                sectionReq.open("GET", "/render/" + s, true);
                 sectionReq.send();
 
                 return false;
@@ -60,14 +64,22 @@
                     console.log(value);
                 }
 
-                eReq.onloadend = function() {
-                    if (modalid != "") {
-                        UIkit.modal(document.getElementById(modalid)).hide();
-                    };
-                    UIkit.notification({message: "<span uk-icon='icon: check'></span> Complete!", pos: "top-center"});
-                    showSection(section);
+                if (modalid != "") {
+                    UIkit.modal(document.getElementById(modalid)).hide();
                 };
-                eReq.open("POST", eForm.getAttribute("action"), true);
+                
+                UIkit.modal(document.getElementById("wait")).show();
+
+                eReq.onloadend = function() {
+                    UIkit.modal(document.getElementById("wait")).hide();
+                    if (this.status != 200) {
+                        UIkit.notification({message: "<span uk-icon='icon: check'></span> Complete!, With Errors...", pos: "top-center", status: "danger", timeout: 2000});
+                    } else {
+                        UIkit.notification({message: "<span uk-icon='icon: check'></span> Complete!", pos: "top-center", status: "success", timeout: 2000});
+                        showSection(section);
+                    }
+                };
+                eReq.open(eForm.getAttribute("method"), eForm.getAttribute("action"), true);
                 eReq.send(eData);
 
                 return false;

@@ -1,34 +1,86 @@
 <div class="uk-card-body">
-    <h3 class="uk-card-title uk-text-center">Welcome To The Mariner's Point Linksters Home Page</h3>
-    <p class="uk-test-muted">A place on the internets for the Mariner's point crew to share information about oll of our fun times.</p>
+    <h3 class="uk-card-title uk-text-center {{.User.TextPreference}}">Welcome To The Mariner's Point Linksters Home Page</h3>
+    <p class="{{.User.TextPreference}}">A place on the internets for the Mariner's point crew to share information about oll of our fun times.</h5>
     <div class="uk-child-width-3-1 uk-align-center uk-grid-small" uk-grid>
-        <div class="uk-card uk-card-default uk-card-body">
-            <h4 class="uk-heading-bullet">Players</h4>
-            <p>The players page <span uk-icon="users" onClick="showSection('players')"></span> lists the people who are active within our group.</p>
-            <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
-                <div class="uk-navbar-right">
-                    <ul class="uk-iconnav">
-                        <li onClick="showSection('playerinfo')">
-                            <span class="uk-text-small">More Info</span>
-                            <span class="uk-margin-small" uk-icon="question" uk-tooltip="Player Help"></span>
-                        </li>
-                    </ul>
+        <div class="uk-card-hover uk-card uk-card-default">
+            <div class="uk-card-body">
+                <div onClick="showSection('players')">
+                    <h4 class="uk-heading-bullet {{.User.TextPreference}}">Players</h4>
+                    <p class="{{.User.TextPreference}}">The players page <span uk-icon="icon: users; ratio: {{.User.IconRatio}}"></span> lists the people who are active within our group.</p>
                 </div>
-            </nav>
+            </div>
+            <div class="uk-card-footer">
+                <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+                    <div class="uk-navbar-right">
+                        <ul class="uk-iconnav">
+                            <li onClick="showSection('playerinfo')">
+                                <p class="{{.User.TextPreference}}" class="uk-text-muted">More Info
+                                <span class="uk-margin-small" uk-icon="icon: question; ratio: {{.User.IconRatio}}" uk-tooltip="Player Help"></span></p>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
         </div>
-        <div class="uk-card uk-card-default uk-card-body">
-            <h4 class="uk-heading-bullet">Events</h4>
-            <p>The events page <span uk-icon="calendar" onClick="showSection('events')"></span> shows a list of the events that are planned or on-going.</p>
-            <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
-                <div class="uk-navbar-right uk-margin-small">
-                    <ul class="uk-iconnav">
-                        <li onClick="showSection('eventinfo')">
-                            <span class="uk-text-small">More Info</span>
-                            <span class="uk-margin-small" uk-icon="question" uk-tooltip="Event Help"></span>
-                        </li>
-                    </ul>
+        <div class="uk-card-hover uk-card uk-card-default">
+            <div class="uk-card-body">
+                <div onClick="showSection('events')">
+                    <h4 class="uk-heading-bullet {{.User.TextPreference}}">Events</h4>
+                    <p class="{{.User.TextPreference}}">The events page <span uk-icon="icon: calendar; ratio: {{.User.IconRatio}}"></span> shows a list of the events that are planned or on-going.</p>
                 </div>
-            </nav>
+            </div>
+            <div class="uk-card-footer">
+                <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+                    <div class="uk-navbar-right uk-margin-small">
+                        <ul class="uk-iconnav">
+                            <li onClick="showSection('eventinfo')">
+                                <p class="{{.User.TextPreference}}" class="uk-text-muted">More Info
+                                <span class="uk-margin-small" uk-icon="icon: question; ratio: {{.User.IconRatio}}" uk-tooltip="Event Help"></span></p>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+        <div class="uk-card-hover uk-card uk-card-default">
+            <div class="uk-card-body">
+                <div onClick="showSection('message')">
+                    <h4 class="uk-heading-bullet {{.User.TextPreference}}">Messages</h4>
+                    <p class="{{.User.TextPreference}}">The message page <span uk-icon="icon: comment; ratio: {{.User.IconRatio}}"></span> allows users to send messages to the group.</p>
+                </div>
+            </div>
+            <div class="uk-card-footer">
+                <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+                    <div class="uk-navbar-right">
+                        <ul class="uk-iconnav">
+                            <li onClick="showSection('messageinfo')">
+                                <p class="{{.User.TextPreference}}" class="uk-text-muted">More Info
+                                <span class="uk-margin-small" uk-icon="icon: question; ratio: {{.User.IconRatio}}" uk-tooltip="Message Help"></span></p>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+        <div class="uk-card-hover uk-card uk-card-default">
+            <div class="uk-card-body">
+                <div onClick="showSection('scores')">
+                    <h4 class="uk-heading-bullet {{.User.TextPreference}}">Scores</h4>
+                    <p class="{{.User.TextPreference}}">The scores page <span uk-icon="icon: file-text; ratio: {{.User.IconRatio}}"></span> shows current player ranks and averages used for picking teams.</p>
+                </div>
+            </div>
+            <div class="uk-card-footer">
+                <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+                    <div class="uk-navbar-right">
+                        <ul class="uk-iconnav">
+                            <li onClick="showSection('scoresinfo')">
+                                <p class="{{.User.TextPreference}}" class="uk-text-muted">More Info
+                                <span class="uk-margin-small" uk-icon="icon: question; ratio: {{.User.IconRatio}}" uk-tooltip="Message Help"></span></p>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
         </div>
     </div>
 </div>

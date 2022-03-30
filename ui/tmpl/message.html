@@ -1,14 +1,46 @@
 <div class="uk-card-body">
-    <h3 class="uk-card-title">Send A Message</h3>
-    <p>Use this page to send a message to ALL of the Mariner's golfers.</p>
-    <form action="/sendmessage/{{.User.ID}}" method="POST">
-        <fieldset class="uk-fieldset">
-            <div class="uk-margin">
-                <div class="uk-form-controls">
-                    <textarea class="uk-textarea" rows="5" name="message" id="message" placeholder="Add your message here!"></textarea>
-                </div>
+    <div class="uk-child-width-3-1 uk-align-center" uk-grid>
+        <div class="uk-card uk-card-default uk-card-body">
+            <h3 class="uk-card-title {{.User.TextPreference}}">Send A Message</h3>
+            <p class="{{.User.TextPreference}}">Use this page to send a message to ALL of the Mariner's golfers.</p>
+            <form action="/form/postmessage/{{.User.ID}}" method="POST" onsubmit="return submitForm(this, 'home'); return false;">
+                <fieldset class="uk-fieldset">
+                    <div class="uk-margin">
+                        <div class="uk-form-controls">
+                            <textarea class="uk-textarea uk-form-large" rows="2" maxlength="100" name="message" id="message" placeholder="Add your message here!"></textarea>
+                        </div>
+                    </div>
+                </fieldset>
+                {{ if (.MessageTime) }}
+                    <p class="uk-text-muted">Messages are limited to 100 characters.</p>
+                    <button class="uk-button uk-button-primary" type="submit">Send</button>
+                {{ else }}
+                    <p class="uk-text-muted">Messages can only be sent between 8 AM and 8 PM PT.</p>
+                    <button class="uk-button uk-button-primary" type="submit" disabled>Send</button>
+                {{ end }}
+            </form>
+        </div>
+        {{ if .User.HasRole "Tournament" }}
+            <div class="uk-card uk-card-default uk-card-body">
+                <h3 class="uk-card-title {{.User.TextPreference}}">Send A Tournament Message</h3>
+                <p class="{{.User.TextPreference}}">Use this page to send a message to ONLY tournament golfers.</p>
+                <form action="/form/posttournymessage/{{.User.ID}}" method="POST" onsubmit="return submitForm(this, 'home'); return false;">
+                    <fieldset class="uk-fieldset">
+                        <div class="uk-margin">
+                            <div class="uk-form-controls">
+                                <textarea class="uk-textarea uk-form-large" rows="2" maxlength="100" name="message" id="message" placeholder="Add your message here!"></textarea>
+                            </div>
+                        </div>
+                    </fieldset>
+                    {{ if (.MessageTime) }}
+                        <p class="uk-text-muted">Messages are limited to 100 characters.</p>
+                        <button class="uk-button uk-button-primary" type="submit">Send</button>
+                    {{ else }}
+                        <p class="uk-text-muted">Messages can only be sent between 8 AM and 8 PM PT.</p>
+                        <button class="uk-button uk-button-primary" type="submit" disabled>Send</button>
+                    {{ end }}
+                </form>
             </div>
-        </fieldset>
-        <button class="uk-button uk-button-primary" type="submit">Send</button>
-    </form>
+        {{ end }}
+    </div>
 </div>
