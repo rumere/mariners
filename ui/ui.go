@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"mariners/db"
 	"mariners/mpevent"
 	"mariners/player"
 	"mariners/role"
@@ -908,7 +909,7 @@ func putMemberUnpayHandler(w http.ResponseWriter, r *http.Request, title string,
 	r.Body.Close()
 }
 
-//Scoring
+// Scoring
 func scoresHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	p := Page{}
 
@@ -939,7 +940,7 @@ func scoresinfoHandler(w http.ResponseWriter, r *http.Request, title string, use
 	renderTemplate(w, "scoresinfo", &p)
 }
 
-//Main
+// Main
 func indexHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	p := Page{}
 
@@ -1195,17 +1196,23 @@ func addAllUserHandler(w http.ResponseWriter, r *http.Request) {
 func cacheData() error {
 	log.Printf("Refreshing data cache...")
 
+	log.Printf("Players...")
+
 	ps, err := player.GetPlayers()
 	if err != nil {
 		return err
 	}
 	pagedata.Players = ps
 
+	log.Printf("Roles...")
+
 	rs, err := role.GetRoles()
 	if err != nil {
 		return err
 	}
 	pagedata.Roles = rs
+
+	log.Printf("Events...")
 
 	es, err := mpevent.GetEvents()
 	if err != nil {
@@ -1232,6 +1239,10 @@ func errorHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	var err error
+	db.Con, err = db.DBConnection()
+	defer db.Con.Close()
+
 	listenport := getEnv("listenport", "8000")
 
 	r := mux.NewRouter()
@@ -1296,16 +1307,21 @@ func main() {
 
 	go redirectToHTTPS()
 
-	err := cacheData()
+	err = cacheData()
 	if err != nil {
 		log.Panic(err)
 	}
+
+	fmt.Printf("Starting HTTP Server...")
+
 	srv := &http.Server{
 		Handler:      r,
 		Addr:         fmt.Sprintf(":%s", listenport),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
 	}
+
+	fmt.Printf("Started.\n")
 
 	log.Fatal(srv.ListenAndServe())
 }

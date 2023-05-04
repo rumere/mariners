@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -16,6 +17,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
+)
+
+var (
+	Con *sql.DB
 )
 
 type dbUser struct {
@@ -28,73 +33,84 @@ type dbUser struct {
 }
 
 func getDSNAWS() string {
+	log.Printf("Using AWS to generate DSN")
 	secretName := "mplinkstersdb"
 	region := "us-west-1"
-
-	//Create a Secrets Manager client
-	sess, err := session.NewSession()
-	if err != nil {
-		// Handle session creation error
-		fmt.Println(err.Error())
-		return ""
-	}
-	svc := secretsmanager.New(sess,
-		aws.NewConfig().WithRegion(region))
-	input := &secretsmanager.GetSecretValueInput{
-		SecretId:     aws.String(secretName),
-		VersionStage: aws.String("AWSCURRENT"), // VersionStage defaults to AWSCURRENT if unspecified
-	}
-
-	// In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
-	// See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
-
-	result, err := svc.GetSecretValue(input)
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case secretsmanager.ErrCodeDecryptionFailure:
-				// Secrets Manager can't decrypt the protected secret text using the provided KMS key.
-				fmt.Println(secretsmanager.ErrCodeDecryptionFailure, aerr.Error())
-
-			case secretsmanager.ErrCodeInternalServiceError:
-				// An error occurred on the server side.
-				fmt.Println(secretsmanager.ErrCodeInternalServiceError, aerr.Error())
-
-			case secretsmanager.ErrCodeInvalidParameterException:
-				// You provided an invalid value for a parameter.
-				fmt.Println(secretsmanager.ErrCodeInvalidParameterException, aerr.Error())
-
-			case secretsmanager.ErrCodeInvalidRequestException:
-				// You provided a parameter value that is not valid for the current state of the resource.
-				fmt.Println(secretsmanager.ErrCodeInvalidRequestException, aerr.Error())
-
-			case secretsmanager.ErrCodeResourceNotFoundException:
-				// We can't find the resource that you asked for.
-				fmt.Println(secretsmanager.ErrCodeResourceNotFoundException, aerr.Error())
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-		}
-		return ""
-	}
-
-	// Decrypts secret using the associated KMS CMK.
-	// Depending on whether the secret is a string or binary, one of these fields will be populated.
-	secretString := *result.SecretString
-
-	// Your code goes here.
 	u := dbUser{}
-	err = json.Unmarshal([]byte(secretString), &u)
-	if err != nil {
-		fmt.Println(err.Error())
-		return ""
+
+	if getEnv("MPDBPASSWORD", "") == "" {
+		//Create a Secrets Manager client
+		log.Printf("Creating AWS session")
+		sess, err := session.NewSession()
+		if err != nil {
+			// Handle session creation error
+			fmt.Println(err.Error())
+			return ""
+		}
+		log.Printf("Creating SecretManager object")
+		svc := secretsmanager.New(sess,
+			aws.NewConfig().WithRegion(region))
+		input := &secretsmanager.GetSecretValueInput{
+			SecretId:     aws.String(secretName),
+			VersionStage: aws.String("AWSCURRENT"), // VersionStage defaults to AWSCURRENT if unspecified
+		}
+
+		// In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
+		// See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+
+		log.Printf("Getting Secret")
+		result, err := svc.GetSecretValue(input)
+		if err != nil {
+			if aerr, ok := err.(awserr.Error); ok {
+				switch aerr.Code() {
+				case secretsmanager.ErrCodeDecryptionFailure:
+					// Secrets Manager can't decrypt the protected secret text using the provided KMS key.
+					fmt.Println(secretsmanager.ErrCodeDecryptionFailure, aerr.Error())
+
+				case secretsmanager.ErrCodeInternalServiceError:
+					// An error occurred on the server side.
+					fmt.Println(secretsmanager.ErrCodeInternalServiceError, aerr.Error())
+
+				case secretsmanager.ErrCodeInvalidParameterException:
+					// You provided an invalid value for a parameter.
+					fmt.Println(secretsmanager.ErrCodeInvalidParameterException, aerr.Error())
+
+				case secretsmanager.ErrCodeInvalidRequestException:
+					// You provided a parameter value that is not valid for the current state of the resource.
+					fmt.Println(secretsmanager.ErrCodeInvalidRequestException, aerr.Error())
+
+				case secretsmanager.ErrCodeResourceNotFoundException:
+					// We can't find the resource that you asked for.
+					fmt.Println(secretsmanager.ErrCodeResourceNotFoundException, aerr.Error())
+				}
+			} else {
+				// Print the error, cast err to awserr.Error to get the Code and
+				// Message from an error.
+				fmt.Println(err.Error())
+			}
+			return ""
+		}
+
+		// Decrypts secret using the associated KMS CMK.
+		// Depending on whether the secret is a string or binary, one of these fields will be populated.
+		secretString := *result.SecretString
+
+		// Your code goes here.
+		err = json.Unmarshal([]byte(secretString), &u)
+		if err != nil {
+			fmt.Println(err.Error())
+			return ""
+		}
+	} else {
+		u.Password = getEnv("MPDBPASSWORD", "")
+		u.Username = "admin"
 	}
+
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", u.Username, u.Password, u.Host, u.Port, u.DbInstanceIdentifier)
 }
 
 func getDSNEnv() string {
+	log.Printf("Using ENV to generate DSN")
 	username := getEnv("MPDBUSER", "root")
 	password := getEnv("MPDBPASSWORD", "")
 	host := getEnv("MPDBHOST", "localhost")
@@ -116,6 +132,8 @@ func DBConnection() (*sql.DB, error) {
 	var db *sql.DB
 	var err error
 
+	log.Printf("Connecting to DB...")
+
 	if dblocation == "AWS" {
 		db, err = sql.Open("mysql", getDSNAWS())
 		if err != nil {
@@ -128,9 +146,9 @@ func DBConnection() (*sql.DB, error) {
 		}
 	}
 
-	db.SetMaxOpenConns(20)
-	db.SetMaxIdleConns(20)
-	db.SetConnMaxLifetime(time.Minute * 5)
+	db.SetMaxOpenConns(64)
+	db.SetMaxIdleConns(64)
+	db.SetConnMaxLifetime(time.Minute)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
@@ -138,6 +156,8 @@ func DBConnection() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Printf("Connected.\n")
 
 	return db, nil
 }

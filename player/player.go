@@ -3,7 +3,6 @@ package player
 import (
 	"context"
 	"fmt"
-	"log"
 	"mariners/db"
 	"mariners/role"
 	"mariners/sms"
@@ -30,12 +29,6 @@ type Player struct {
 type Players []Player
 
 func AddPlayer(p *Player) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := fmt.Sprintf("INSERT INTO player (idplayer, name, preferred_name, phone, email, ghin_number, text_preference) VALUES (NULL, \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\");\n",
 		p.Name,
 		p.PreferredName,
@@ -45,7 +38,7 @@ func AddPlayer(p *Player) error {
 		p.TextPreference)
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	res, err := db.ExecContext(ctx, query)
+	res, err := db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -79,7 +72,7 @@ func AddPlayer(p *Player) error {
 			p.ID)
 		ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelfunc()
-		res, err := db.ExecContext(ctx, query)
+		res, err := db.Con.ExecContext(ctx, query)
 		if err != nil {
 			return err
 		}
@@ -106,7 +99,7 @@ func AddPlayer(p *Player) error {
 
 		ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelfunc()
-		_, err = db.ExecContext(ctx, query)
+		_, err = db.Con.ExecContext(ctx, query)
 		if err != nil {
 			return err
 		}
@@ -117,16 +110,10 @@ func AddPlayer(p *Player) error {
 }
 
 func (p *Player) GetPlayerByID(id int64) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number, main_sub_arn, text_preference FROM player WHERE idplayer=?"
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	err = db.QueryRowContext(ctx, query, id).Scan(&p.ID, &p.Name, &p.PreferredName, &p.Phone, &p.Email, &p.GhinNumber, &p.MainSubscriptionARN, &p.TextPreference)
+	err := db.Con.QueryRowContext(ctx, query, id).Scan(&p.ID, &p.Name, &p.PreferredName, &p.Phone, &p.Email, &p.GhinNumber, &p.MainSubscriptionARN, &p.TextPreference)
 	if err != nil {
 		return err
 	}
@@ -152,16 +139,10 @@ func (p *Player) GetPlayerByID(id int64) error {
 }
 
 func (p *Player) GetPlayerByPreferredName(name string) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number, main_sub_arn, text_preference FROM player WHERE preferred_name=?"
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	err = db.QueryRowContext(ctx, query, name).Scan(&p.ID, &p.Name, &p.PreferredName, &p.Phone, &p.Email, &p.GhinNumber, &p.MainSubscriptionARN, &p.TextPreference)
+	err := db.Con.QueryRowContext(ctx, query, name).Scan(&p.ID, &p.Name, &p.PreferredName, &p.Phone, &p.Email, &p.GhinNumber, &p.MainSubscriptionARN, &p.TextPreference)
 	if err != nil {
 		return fmt.Errorf("error looking up name: %s: %s", name, err)
 	}
@@ -187,18 +168,12 @@ func (p *Player) GetPlayerByPreferredName(name string) error {
 }
 
 func GetPlayers() (Players, error) {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	p := make(Players, 0)
 
 	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number, main_sub_arn, text_preference FROM player ORDER BY preferred_name"
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.Con.QueryContext(ctx, query)
 	if err != nil {
 		return p, err
 	}
@@ -230,16 +205,10 @@ func GetPlayers() (Players, error) {
 }
 
 func (p *Player) GetPlayerByToken(token string) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := "SELECT idplayer, name, preferred_name, phone, email, ghin_number, main_sub_arn, text_preference FROM player WHERE token=?"
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	err = db.QueryRowContext(ctx, query, token).Scan(&p.ID, &p.Name, &p.PreferredName, &p.Phone, &p.Email, &p.GhinNumber, &p.MainSubscriptionARN, &p.TextPreference)
+	err := db.Con.QueryRowContext(ctx, query, token).Scan(&p.ID, &p.Name, &p.PreferredName, &p.Phone, &p.Email, &p.GhinNumber, &p.MainSubscriptionARN, &p.TextPreference)
 	if err != nil {
 		return err
 	}
@@ -265,16 +234,10 @@ func (p *Player) GetPlayerByToken(token string) error {
 }
 
 func (p *Player) WriteToken(token string) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := fmt.Sprintf("UPDATE player set token = \"%s\" WHERE idplayer = %d;\n", token, p.ID)
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	res, err := db.ExecContext(ctx, query)
+	res, err := db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -291,16 +254,10 @@ func (p *Player) WriteToken(token string) error {
 }
 
 func (p *Player) RemoveToken() error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := fmt.Sprintf("UPDATE player set token = null WHERE idplayer = %d;\n", p.ID)
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	res, err := db.ExecContext(ctx, query)
+	res, err := db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -317,12 +274,6 @@ func (p *Player) RemoveToken() error {
 }
 
 func (p *Player) UpdatePlayer() error {
-	db, err := db.DBConnection()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
 	query := fmt.Sprintf("UPDATE player set name = \"%s\", preferred_name = \"%s\", phone = \"%s\", email = \"%s\", ghin_number = \"%s\", main_sub_arn = \"%s\", text_preference = \"%s\" WHERE idplayer = %d;\n",
 		p.Name,
 		p.PreferredName,
@@ -335,7 +286,7 @@ func (p *Player) UpdatePlayer() error {
 	)
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	_, err = db.ExecContext(ctx, query)
+	_, err := db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -344,7 +295,7 @@ func (p *Player) UpdatePlayer() error {
 		p.ID)
 	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	_, err = db.ExecContext(ctx, query)
+	_, err = db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -355,7 +306,7 @@ func (p *Player) UpdatePlayer() error {
 			p.ID)
 		ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelfunc()
-		_, err := db.ExecContext(ctx, query)
+		_, err := db.Con.ExecContext(ctx, query)
 		if err != nil {
 			return err
 		}
@@ -375,7 +326,7 @@ func (p *Player) UpdatePlayer() error {
 
 		ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelfunc()
-		_, err = db.ExecContext(ctx, query)
+		_, err = db.Con.ExecContext(ctx, query)
 		if err != nil {
 			return err
 		}
@@ -388,7 +339,7 @@ func (p *Player) UpdatePlayer() error {
 		query = fmt.Sprintf("UPDATE player SET main_sub_arn = \"\" WHERE idplayer=%d", p.ID)
 		ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelfunc()
-		_, err = db.ExecContext(ctx, query)
+		_, err = db.Con.ExecContext(ctx, query)
 		if err != nil {
 			return err
 		}
@@ -410,17 +361,11 @@ func (p *Player) UpdatePlayer() error {
 }
 
 func (p *Player) DeletePlayer() error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := fmt.Sprintf("DELETE FROM role_members WHERE idplayer=%d", p.ID)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	_, err = db.ExecContext(ctx, query)
+	_, err := db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -429,7 +374,7 @@ func (p *Player) DeletePlayer() error {
 
 	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	res, err := db.ExecContext(ctx, query)
+	res, err := db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -459,12 +404,6 @@ func (p *Player) HasRole(rolename string) bool {
 }
 
 func AddRoleAll(id int64) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	ps, err := GetPlayers()
 	if err != nil {
 		return err
@@ -492,7 +431,7 @@ func AddRoleAll(id int64) error {
 
 				ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancelfunc()
-				_, err = db.ExecContext(ctx, query)
+				_, err = db.Con.ExecContext(ctx, query)
 				if err != nil {
 					return err
 				}

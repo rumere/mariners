@@ -14,8 +14,8 @@
             <tr>
                 <th>Rank</th>
                 <th>Name</th>
-                <th>2022 Avg</th>
                 <th>Last 20 Avg</th>
+                <th>2022 Avg</th>
                 <th>Rounds</th>
             </tr>
         </thead>
@@ -24,8 +24,8 @@
                 <tr onClick="showSection('playerview/{{$player.Player.ID}}')">
                     <td><p class="{{$.User.TextPreference}}">{{printf "%d" $player.Rank}}</p></td>
                     <td><p class="{{$.User.TextPreference}}">{{printf "%s" $player.Player.PreferredName}}</p></td>
-                    <td><p class="{{$.User.TextPreference}}">{{printf "%.2f" $player.Average}}</p></td>
                     <td><p class="{{$.User.TextPreference}}">{{printf "%.2f" $player.Last20}}</p></td>
+                    <td><p class="{{$.User.TextPreference}}">{{printf "%.2f" $player.Average}}</p></td>
                     <td><p class="{{$.User.TextPreference}}">{{printf "%d" $player.Rounds}}</p></td>
                 </tr>
             {{end}}

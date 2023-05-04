@@ -1,15 +1,30 @@
 BINARY_NAME=mpui
 
-build:
+build-mac:
+	GOARCH=amd64 GOOS=darwin go build -o ${BINARY_NAME} ui.go
+	gtar cfz ${BINARY_NAME}.tar.gz ${BINARY_NAME} static/* tmpl/*
+
+build-arm:
+	GOARCH=arm64 GOOS=linux go build -o ${BINARY_NAME} ui.go
+	gtar cfz ${BINARY_NAME}.tar.gz ${BINARY_NAME} static/* tmpl/*
+
+build-amd:
 	GOARCH=amd64 GOOS=linux go build -o ${BINARY_NAME} ui.go
 	gtar cfz ${BINARY_NAME}.tar.gz ${BINARY_NAME} static/* tmpl/*
 
-deploy:
+deploy-aws:
 	scp -i ~/.ssh/mplinksters.pem mpui.tar.gz ec2-user@s1.mplinksters.club:
 	ssh -i ~/.ssh/mplinksters.pem ec2-user@s1.mplinksters.club "pkill mpui; rm -rf ui/*; cd ui; tar xfz ../mpui.tar.gz" 
 
-start:
+deploy-oci:
+	scp mpui.tar.gz opc@mplinksters-01:
+	ssh opc@mplinksters-01 "pkill mpui; rm -rf ui/*; cd ui; tar xfz ../mpui.tar.gz" 
+
+start-aws:
 	ssh -i ~/.ssh/mplinksters.pem ec2-user@s1.mplinksters.club "cd ui; nohup ./mpui &"	
+
+start-oci:
+	ssh opc@mplinksters-01 "cd ui; nohup ./mpui &"	
 
 container:
 	podman build -t ${BINARY_NAME} .

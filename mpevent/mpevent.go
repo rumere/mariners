@@ -48,12 +48,6 @@ type EventMembers []EventMember
 type EventMessages []EventMessage
 
 func (e *Event) CreateEvent() error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	topicName := strings.Replace(e.Name, " ", "-", -1)
 
 	topicARN, err := sms.CreateTopic(topicName)
@@ -73,7 +67,7 @@ func (e *Event) CreateEvent() error {
 		e.Cost)
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	res, err := db.ExecContext(ctx, query)
+	res, err := db.Con.ExecContext(ctx, query)
 	if err != nil {
 		log.Println("error is from createevent query")
 		return err
@@ -95,12 +89,6 @@ func (e *Event) CreateEvent() error {
 }
 
 func (e *Event) UpdateEvent() error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := fmt.Sprintf("UPDATE event set date=\"%s\", paid_event=%t, description=\"%s\", ownerid=%d, invite_only=%t, cost=%f WHERE idevent=%d",
 		e.Date,
 		e.PaidEvent,
@@ -111,7 +99,7 @@ func (e *Event) UpdateEvent() error {
 		e.ID)
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	_, err = db.ExecContext(ctx, query)
+	_, err := db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -137,12 +125,6 @@ func (e *Event) AddMember(id int64, paid bool) error {
 		return err
 	}
 
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := fmt.Sprintf("INSERT INTO event_members (idevent, idplayer, paid, subscription_arn) VALUES (%d, %d, %t, \"%s\")",
 		e.ID,
 		id,
@@ -150,7 +132,7 @@ func (e *Event) AddMember(id int64, paid bool) error {
 		subARN)
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	_, err = db.ExecContext(ctx, query)
+	_, err = db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -180,19 +162,13 @@ func (e *Event) UpdateMember(id int64, paid bool) error {
 		return err
 	}
 
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := fmt.Sprintf("UPDATE event_members set paid=%t WHERE idevent=%d and idplayer=%d",
 		paid,
 		e.ID,
 		id)
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	_, err = db.ExecContext(ctx, query)
+	_, err = db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -222,15 +198,10 @@ func (e *Event) UpdateMember(id int64, paid bool) error {
 }
 
 func (e *Event) DeleteMember(id int64) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
+	var err error
 	for _, m := range e.Members {
 		if m.Player.ID == id {
-			err = sms.RemoveSubscriber(m.SubscriptionArn)
+			err := sms.RemoveSubscriber(m.SubscriptionArn)
 			if err != nil {
 				return err
 			}
@@ -256,7 +227,7 @@ func (e *Event) DeleteMember(id int64) error {
 		id)
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	_, err = db.ExecContext(ctx, query)
+	_, err = db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -294,12 +265,6 @@ func (e *Event) SendEventMessage(msg string, sid int64) error {
 	m.Player = p
 	e.Messages = append(e.Messages, m)
 
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := fmt.Sprintf("INSERT INTO event_messages (idevent, idsender, message, date, idmessage) VALUES (%d, %d, \"%s\", \"%s\", \"\")",
 		e.ID,
 		m.Player.ID,
@@ -307,7 +272,7 @@ func (e *Event) SendEventMessage(msg string, sid int64) error {
 		m.Date)
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	_, err = db.ExecContext(ctx, query)
+	_, err = db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -316,17 +281,11 @@ func (e *Event) SendEventMessage(msg string, sid int64) error {
 }
 
 func (e *Event) GetEventByID(id int64) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := fmt.Sprintf("SELECT idevent, name, date, paid_event, topic_arn, description, ownerid, invite_only, cost FROM event WHERE idevent=%d", id)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	err = db.QueryRowContext(ctx, query).Scan(
+	err := db.Con.QueryRowContext(ctx, query).Scan(
 		&e.ID,
 		&e.Name,
 		&e.Date,
@@ -340,7 +299,7 @@ func (e *Event) GetEventByID(id int64) error {
 		return err
 	}
 
-	t := time.Time{}
+	var t time.Time
 	awsdate, err := regexp.Match(`T`, []byte(e.Date))
 	if err != nil {
 		return err
@@ -366,7 +325,7 @@ func (e *Event) GetEventByID(id int64) error {
 	query = fmt.Sprintf("SELECT idplayer, paid, subscription_arn FROM event_members WHERE idevent=%d", e.ID)
 	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.Con.QueryContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -382,7 +341,7 @@ func (e *Event) GetEventByID(id int64) error {
 	query = fmt.Sprintf("SELECT idsender, message, date FROM event_messages WHERE idevent=%d", e.ID)
 	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	rows, err = db.QueryContext(ctx, query)
+	rows, err = db.Con.QueryContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -399,17 +358,11 @@ func (e *Event) GetEventByID(id int64) error {
 }
 
 func (e *Event) GetEventByName(name string) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := fmt.Sprintf("SELECT idevent, name, date, paid_event, topic_arn, description, ownerid, invite_only, cost FROM event WHERE name=%s", name)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	err = db.QueryRowContext(ctx, query).Scan(
+	err := db.Con.QueryRowContext(ctx, query).Scan(
 		&e.ID,
 		&e.Name,
 		&e.Date,
@@ -423,7 +376,7 @@ func (e *Event) GetEventByName(name string) error {
 		return err
 	}
 
-	t := time.Time{}
+	var t time.Time
 	awsdate, err := regexp.Match(`T`, []byte(e.Date))
 	if err != nil {
 		return err
@@ -449,7 +402,7 @@ func (e *Event) GetEventByName(name string) error {
 	query = fmt.Sprintf("SELECT idplayer, paid, subscription_arn FROM event_members WHERE idevent=%d", e.ID)
 	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.Con.QueryContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -466,7 +419,7 @@ func (e *Event) GetEventByName(name string) error {
 	query = fmt.Sprintf("SELECT idsender, message, date FROM event_messages WHERE idevent=%d", e.ID)
 	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	rows, err = db.QueryContext(ctx, query)
+	rows, err = db.Con.QueryContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -483,18 +436,12 @@ func (e *Event) GetEventByName(name string) error {
 }
 
 func GetEvents() (Events, error) {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	es := make(Events, 0)
 
 	query := "SELECT idevent, name, date, paid_event, topic_arn, description, ownerid, invite_only, cost FROM event"
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.Con.QueryContext(ctx, query)
 	if err != nil {
 		return es, err
 	}
@@ -505,7 +452,7 @@ func GetEvents() (Events, error) {
 			return es, err
 		}
 
-		t := time.Time{}
+		var t time.Time
 		awsdate := strings.Contains(e.Date, "T")
 		if err != nil {
 			return es, err
@@ -534,7 +481,7 @@ func GetEvents() (Events, error) {
 		query := fmt.Sprintf("SELECT idplayer, paid, subscription_arn FROM event_members WHERE idevent=%d", e.ID)
 		ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelfunc()
-		rows, err := db.QueryContext(ctx, query)
+		rows, err := db.Con.QueryContext(ctx, query)
 		if err != nil {
 			return es, err
 		}
@@ -551,7 +498,7 @@ func GetEvents() (Events, error) {
 		query = fmt.Sprintf("SELECT idsender, message, date FROM event_messages WHERE idevent=%d", e.ID)
 		ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelfunc()
-		rows, err = db.QueryContext(ctx, query)
+		rows, err = db.Con.QueryContext(ctx, query)
 		if err != nil {
 			return es, err
 		}
@@ -581,12 +528,6 @@ func (e *Event) HasMember(p player.Player) bool {
 }
 
 func (e *Event) DeleteEvent() error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	for _, m := range e.Members {
 		num, err := phonenumbers.Parse(m.Player.Phone, "US")
 		if err != nil {
@@ -604,7 +545,7 @@ func (e *Event) DeleteEvent() error {
 		}
 	}
 
-	err = sms.DeleteTopic(e.TopicArn)
+	err := sms.DeleteTopic(e.TopicArn)
 	if err != nil {
 		return err
 	}
@@ -612,7 +553,7 @@ func (e *Event) DeleteEvent() error {
 	query := fmt.Sprintf("DELETE FROM event_members WHERE idevent=%d", e.ID)
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	_, err = db.ExecContext(ctx, query)
+	_, err = db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -620,7 +561,7 @@ func (e *Event) DeleteEvent() error {
 	query = fmt.Sprintf("DELETE FROM event_messages WHERE idevent=%d", e.ID)
 	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	_, err = db.ExecContext(ctx, query)
+	_, err = db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -628,7 +569,7 @@ func (e *Event) DeleteEvent() error {
 	query = fmt.Sprintf("DELETE FROM event WHERE idevent=%d", e.ID)
 	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	res, err := db.ExecContext(ctx, query)
+	res, err := db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}

@@ -2,9 +2,7 @@ package team
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"log"
 	"mariners/db"
 	"time"
 )
@@ -21,13 +19,7 @@ type TeamMember struct {
 }
 
 func AddTeam(gid int64, t *Team) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	err = writeTeam(db, gid, t)
+	err := writeTeam(gid, t)
 	if err != nil {
 		return err
 	}
@@ -36,13 +28,7 @@ func AddTeam(gid int64, t *Team) error {
 }
 
 func GetTeam(id int64, t *Team) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	err = getTeam(db, id, t)
+	err := getTeam(id, t)
 	if err != nil {
 		return err
 	}
@@ -50,14 +36,14 @@ func GetTeam(id int64, t *Team) error {
 	return nil
 }
 
-func getTeam(db *sql.DB, id int64, t *Team) error {
+func getTeam(id int64, t *Team) error {
 	query := "SELECT idteam, idgame FROM team WHERE idteam=?"
 
 	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	err := db.QueryRowContext(ctx, query, id).Scan(&t.ID, &t.GameID)
+	err := db.Con.QueryRowContext(ctx, query, id).Scan(&t.ID, &t.GameID)
 	if err != nil {
 		return err
 	}
@@ -67,12 +53,12 @@ func getTeam(db *sql.DB, id int64, t *Team) error {
 	return nil
 }
 
-func writeTeam(db *sql.DB, gid int64, t *Team) error {
+func writeTeam(gid int64, t *Team) error {
 	query := fmt.Sprintf("INSERT INTO team (idteam, idgame) VALUES (NULL, %d);\n", gid)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	res, err := db.ExecContext(ctx, query)
+	res, err := db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}

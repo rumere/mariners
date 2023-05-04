@@ -3,7 +3,6 @@ package game
 import (
 	"context"
 	"fmt"
-	"log"
 	"mariners/db"
 	"mariners/tee"
 	"mariners/weather"
@@ -21,12 +20,6 @@ type Game struct {
 type Games []Game
 
 func (g *Game) AddGame() error {
-	db, err := db.DBConnection()
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
 	g.Weather.AddWeather()
 
 	loc, err := time.LoadLocation("America/Los_Angeles")
@@ -46,7 +39,7 @@ func (g *Game) AddGame() error {
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	res, err := db.ExecContext(ctx, query)
+	res, err := db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -60,19 +53,13 @@ func (g *Game) AddGame() error {
 }
 
 func (g *Game) UpdateGame() error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := fmt.Sprintf("UPDATE game set idninthtee = %d, ismatch=%t where idplayer=%d;", g.Tee.ID, g.IsMatch, g.ID)
 
 	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	res, err := db.ExecContext(ctx, query)
+	res, err := db.Con.ExecContext(ctx, query)
 	if err != nil {
 		return err
 	}
@@ -88,19 +75,13 @@ func (g *Game) UpdateGame() error {
 }
 
 func (g *Game) GetGameByID(id int64) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := "SELECT idgame, idweather, date, idninthtee, ismatch FROM game WHERE idgame=?"
 
 	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	err = db.QueryRowContext(ctx, query, id).Scan(
+	err := db.Con.QueryRowContext(ctx, query, id).Scan(
 		&g.ID,
 		&g.Weather.ID,
 		&g.Date,
@@ -114,12 +95,6 @@ func (g *Game) GetGameByID(id int64) error {
 }
 
 func (g *Game) GetGameByDate(d string) error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	t, err := time.Parse("2006-01-02", d)
 	if err != nil {
 		return err
@@ -141,7 +116,7 @@ func (g *Game) GetGameByDate(d string) error {
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	err = db.QueryRowContext(ctx, query).Scan(
+	err = db.Con.QueryRowContext(ctx, query).Scan(
 		&g.ID,
 		&g.Weather.ID,
 		&g.Date,
@@ -157,19 +132,13 @@ func (g *Game) GetGameByDate(d string) error {
 }
 
 func (gs Games) GetGames() error {
-	db, err := db.DBConnection()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	query := "SELECT idgame, idweather, date, idninthtee, ismatch FROM game"
 
 	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.Con.QueryContext(ctx, query)
 	if err != nil {
 		return err
 	}

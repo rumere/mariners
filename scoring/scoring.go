@@ -127,8 +127,8 @@ func (mp *MPAverage) GetAverage() error {
 		for _, row := range resp.Values {
 			if row[1] == mp.Player.PreferredName {
 				mp.Rank = row[0].(int64)
-				mp.Average = row[2].(float64)
-				mp.Last20 = row[3].(float64)
+				mp.Last20 = row[2].(float64)
+				mp.Average = row[3].(float64)
 				mp.Rounds = row[4].(int64)
 			}
 		}
