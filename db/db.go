@@ -9,9 +9,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -33,7 +34,6 @@ type dbUser struct {
 }
 
 func getDSNAWS() string {
-	log.Printf("Using AWS to generate DSN")
 	secretName := "mplinkstersdb"
 	region := "us-west-1"
 	u := dbUser{}
@@ -58,7 +58,6 @@ func getDSNAWS() string {
 		// In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
 		// See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
 
-		log.Printf("Getting Secret")
 		result, err := svc.GetSecretValue(input)
 		if err != nil {
 			if aerr, ok := err.(awserr.Error); ok {
@@ -110,7 +109,6 @@ func getDSNAWS() string {
 }
 
 func getDSNEnv() string {
-	log.Printf("Using ENV to generate DSN")
 	username := getEnv("MPDBUSER", "root")
 	password := getEnv("MPDBPASSWORD", "")
 	host := getEnv("MPDBHOST", "localhost")
@@ -132,14 +130,16 @@ func DBConnection() (*sql.DB, error) {
 	var db *sql.DB
 	var err error
 
-	log.Printf("Connecting to DB...")
+	log.Info().Msg("Connecting to DB...")
 
 	if dblocation == "AWS" {
+		log.Info().Msg("Using AWS DB...")
 		db, err = sql.Open("mysql", getDSNAWS())
 		if err != nil {
 			return nil, err
 		}
 	} else {
+		log.Info().Msg("Using Local DB...")
 		db, err = sql.Open("mysql", getDSNEnv())
 		if err != nil {
 			return nil, err
@@ -157,7 +157,7 @@ func DBConnection() (*sql.DB, error) {
 		return nil, err
 	}
 
-	log.Printf("Connected.\n")
+	log.Info().Msg("Connected.")
 
 	return db, nil
 }

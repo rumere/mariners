@@ -1,10 +1,11 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"html/template"
-	"log"
 	"mariners/db"
+	"mariners/game"
 	"mariners/mpevent"
 	"mariners/player"
 	"mariners/role"
@@ -17,6 +18,8 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -32,6 +35,7 @@ type Page struct {
 	User        player.Player
 	FocusPlayer player.Player
 	FocusEvent  mpevent.Event
+	Game        game.Game
 }
 
 type MemberPage struct {
@@ -78,7 +82,7 @@ func playereditHandler(w http.ResponseWriter, r *http.Request, title string, use
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.ParseInt(strid, 10, 64)
 	if err != nil {
-		log.Printf("updateplayerHandler: %s\n", err)
+		log.Error().Msgf("updateplayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -97,7 +101,7 @@ func playerviewHandler(w http.ResponseWriter, r *http.Request, title string, use
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.ParseInt(strid, 10, 64)
 	if err != nil {
-		log.Printf("playerviewHandler: %s\n", err)
+		log.Error().Msgf("playerviewHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -124,17 +128,16 @@ func playeraddHandler(w http.ResponseWriter, r *http.Request, title string, user
 func putPlayerHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	err := r.ParseMultipartForm(1 << 20)
 	if err != nil {
-		log.Printf("putPlayerHandler: %s\n", err)
+		log.Error().Msgf("putPlayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	p := player.Player{}
 	strid := r.FormValue("id")
-	log.Printf("updateplayerHandler: FormData: %#v\n", r.Form)
 	id, err := strconv.ParseInt(strid, 10, 64)
 	if err != nil {
-		log.Printf("putPlayerHandler: %s\n", err)
+		log.Error().Msgf("putPlayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -150,19 +153,19 @@ func putPlayerHandler(w http.ResponseWriter, r *http.Request, title string, user
 	for _, strid := range r.Form["role"] {
 		rid, err := strconv.Atoi(strid)
 		if err != nil {
-			log.Printf("putPlayerHandler: %s\n", err)
+			log.Error().Msgf("putPlayerHandler: %s\n", err)
 			errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		fr, err := role.GetRoleByID(int64(rid))
 		if err != nil {
-			log.Printf("putPlayerHandler: %s\n", err)
+			log.Error().Msgf("putPlayerHandler: %s\n", err)
 			errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 			return
 		}
 		if fr == nil {
-			log.Println("huh?")
+			log.Printf("huh?")
 		} else {
 			p.Roles[int64(rid)] = fr[int64(rid)]
 		}
@@ -170,14 +173,14 @@ func putPlayerHandler(w http.ResponseWriter, r *http.Request, title string, user
 
 	err = p.UpdatePlayer()
 	if err != nil {
-		log.Printf("putPlayerHandler: %s\n", err)
+		log.Error().Msgf("putPlayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = cacheData()
 	if err != nil {
-		log.Printf("putPlayerHandler: %s\n", err)
+		log.Error().Msgf("putPlayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -191,7 +194,7 @@ func postPlayerHandler(w http.ResponseWriter, r *http.Request, title string, use
 
 	err := r.ParseMultipartForm(1 << 20)
 	if err != nil {
-		log.Printf("addplayerHandler: %s\n", err)
+		log.Error().Msgf("addplayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -206,31 +209,29 @@ func postPlayerHandler(w http.ResponseWriter, r *http.Request, title string, use
 	for _, strid := range r.Form["role"] {
 		rid, err := strconv.Atoi(strid)
 		if err != nil {
-			log.Printf("addplayerHandler: %s\n", err)
+			log.Error().Msgf("addplayerHandler: %s\n", err)
 			errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 			return
 		}
 		fr, err := role.GetRoleByID(int64(rid))
 		if err != nil {
-			log.Printf("addplayerHandler: %s\n", err)
+			log.Error().Msgf("addplayerHandler: %s\n", err)
 			errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 			return
 		}
 		p.Roles[int64(rid)] = fr[int64(rid)]
 	}
 
-	log.Printf("AddPlayer form values: %#v", p)
-
 	err = player.AddPlayer(&p)
 	if err != nil {
-		log.Printf("addplayerHandler: %s\n", err)
+		log.Error().Msgf("addplayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = cacheData()
 	if err != nil {
-		log.Printf("addplayerHandler: %s\n", err)
+		log.Error().Msgf("addplayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -243,7 +244,7 @@ func delPlayerHandler(w http.ResponseWriter, r *http.Request, title string, user
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
-		log.Printf("deleteplayerHandler: %s\n", err)
+		log.Error().Msgf("deleteplayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -252,14 +253,14 @@ func delPlayerHandler(w http.ResponseWriter, r *http.Request, title string, user
 	p.ID = int64(id)
 	err = p.DeletePlayer()
 	if err != nil {
-		log.Printf("deleteplayerHandler: %s\n", err)
+		log.Error().Msgf("deleteplayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = cacheData()
 	if err != nil {
-		log.Printf("deleteplayerHandler: %s\n", err)
+		log.Error().Msgf("deleteplayerHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -272,12 +273,12 @@ func delPlayerHandler(w http.ResponseWriter, r *http.Request, title string, user
 func postMessageHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	a, err := checkPerms(user, "Communications")
 	if err != nil {
-		log.Printf("sendmessageHandler: %s\n", err)
+		log.Error().Msgf("sendmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusForbidden)
 		return
 	}
 	if !a {
-		log.Printf("sendmessageHandler: %s\n", err)
+		log.Error().Msgf("sendmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusForbidden)
 		return
 	}
@@ -285,7 +286,7 @@ func postMessageHandler(w http.ResponseWriter, r *http.Request, title string, us
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
-		log.Printf("sendmessageHandler: %s\n", err)
+		log.Error().Msgf("sendmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -293,25 +294,18 @@ func postMessageHandler(w http.ResponseWriter, r *http.Request, title string, us
 	p := player.Player{}
 	err = p.GetPlayerByID(int64(id))
 	if err != nil {
-		log.Printf("sendmessageHandler: %s\n", err)
+		log.Error().Msgf("sendmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	msg := fmt.Sprintf("Message from %s: ", p.PreferredName)
 	msg += r.FormValue("message")
 
-	//_, err = sms.SendTextTopic(msg, sms.MainTopicARN)
-	//if err != nil {
-	// 	log.Printf("sendmessageHandler: %s\n", err)
-	//	errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
-	//	return
-	//}
-
 	for _, p := range pagedata.Players {
 		if p.HasRole("User") {
 			num, err := phonenumbers.Parse(p.Phone, "US")
 			if err != nil {
-				log.Printf("sendmessageHandler: %s\n", err)
+				log.Error().Msgf("sendmessageHandler: %s\n", err)
 				continue
 			}
 			phone := phonenumbers.Format(num, phonenumbers.E164)
@@ -327,12 +321,12 @@ func postMessageHandler(w http.ResponseWriter, r *http.Request, title string, us
 func postTournamentMessageHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	a, err := checkPerms(user, "Communications")
 	if err != nil {
-		log.Printf("sendmessageHandler: %s\n", err)
+		log.Error().Msgf("sendmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusForbidden)
 		return
 	}
 	if !a {
-		log.Printf("sendmessageHandler: %s\n", err)
+		log.Error().Msgf("sendmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusForbidden)
 		return
 	}
@@ -340,7 +334,7 @@ func postTournamentMessageHandler(w http.ResponseWriter, r *http.Request, title 
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
-		log.Printf("sendmessageHandler: %s\n", err)
+		log.Error().Msgf("sendmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -348,7 +342,7 @@ func postTournamentMessageHandler(w http.ResponseWriter, r *http.Request, title 
 	p := player.Player{}
 	err = p.GetPlayerByID(int64(id))
 	if err != nil {
-		log.Printf("sendmessageHandler: %s\n", err)
+		log.Error().Msgf("sendmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -359,7 +353,7 @@ func postTournamentMessageHandler(w http.ResponseWriter, r *http.Request, title 
 		if p.HasRole("User") && p.HasRole("Tournament") {
 			num, err := phonenumbers.Parse(p.Phone, "US")
 			if err != nil {
-				log.Printf("sendmessageHandler: %s\n", err)
+				log.Error().Msgf("sendmessageHandler: %s\n", err)
 				continue
 			}
 			phone := phonenumbers.Format(num, phonenumbers.E164)
@@ -430,7 +424,7 @@ func eventeditHandler(w http.ResponseWriter, r *http.Request, title string, user
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.ParseInt(strid, 10, 64)
 	if err != nil {
-		log.Printf("eventeditHandler: %s\n", err)
+		log.Error().Msgf("eventeditHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -452,7 +446,7 @@ func eventviewHandler(w http.ResponseWriter, r *http.Request, title string, user
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.ParseInt(strid, 10, 64)
 	if err != nil {
-		log.Printf("eventviewHandler: %s\n", err)
+		log.Error().Msgf("eventviewHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -472,7 +466,7 @@ func postEventHandler(w http.ResponseWriter, r *http.Request, title string, user
 
 	err := r.ParseMultipartForm(1 << 20)
 	if err != nil {
-		log.Printf("addeventHandler: %s\n", err)
+		log.Error().Msgf("addeventHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -484,13 +478,13 @@ func postEventHandler(w http.ResponseWriter, r *http.Request, title string, user
 	} else {
 		loc, err := time.LoadLocation("America/Los_Angeles")
 		if err != nil {
-			log.Printf("addeventHandler: %s\n", err)
+			log.Error().Msgf("addeventHandler: %s\n", err)
 			errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 			return
 		}
 		t, err := time.ParseInLocation("2006-01-02T15:04", fd, loc)
 		if err != nil {
-			log.Printf("addeventHandler: %s\n", err)
+			log.Error().Msgf("addeventHandler: %s\n", err)
 			errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -502,7 +496,7 @@ func postEventHandler(w http.ResponseWriter, r *http.Request, title string, user
 		e.PaidEvent = true
 		c, err := strconv.ParseFloat(r.Form["cost"][0], 32)
 		if err != nil {
-			log.Printf("addeventHandler: %s\n", err)
+			log.Error().Msgf("addeventHandler: %s\n", err)
 			errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -518,7 +512,7 @@ func postEventHandler(w http.ResponseWriter, r *http.Request, title string, user
 	}
 	id, err := strconv.Atoi(strid)
 	if err != nil {
-		log.Printf("addeventHandler: %s\n", err)
+		log.Error().Msgf("addeventHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -526,14 +520,14 @@ func postEventHandler(w http.ResponseWriter, r *http.Request, title string, user
 
 	err = e.CreateEvent()
 	if err != nil {
-		log.Printf("addeventHandler: %s\n", err)
+		log.Error().Msgf("addeventHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = cacheData()
 	if err != nil {
-		log.Printf("addeventHandler: %s\n", err)
+		log.Error().Msgf("addeventHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -545,7 +539,7 @@ func postEventHandler(w http.ResponseWriter, r *http.Request, title string, user
 func putEventHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	err := r.ParseMultipartForm(1 << 20)
 	if err != nil {
-		log.Printf("eventupdateHandler: %s\n", err)
+		log.Error().Msgf("eventupdateHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -553,7 +547,7 @@ func putEventHandler(w http.ResponseWriter, r *http.Request, title string, user 
 	strid := r.FormValue("id")
 	id, err := strconv.ParseInt(strid, 10, 64)
 	if err != nil {
-		log.Printf("eventupdateHandler: %s\n", err)
+		log.Error().Msgf("eventupdateHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -561,7 +555,7 @@ func putEventHandler(w http.ResponseWriter, r *http.Request, title string, user 
 	e := mpevent.Event{}
 	err = e.GetEventByID(int64(id))
 	if err != nil {
-		log.Printf("eventupdateHandler: %s\n", err)
+		log.Error().Msgf("eventupdateHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -578,7 +572,7 @@ func putEventHandler(w http.ResponseWriter, r *http.Request, title string, user 
 	stroid := r.FormValue("owner")
 	oid, err := strconv.Atoi(stroid)
 	if err != nil {
-		log.Printf("editeventHandler: %s\n", err)
+		log.Error().Msgf("editeventHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -590,7 +584,7 @@ func putEventHandler(w http.ResponseWriter, r *http.Request, title string, user 
 	}
 	c, err := strconv.ParseFloat(r.Form["cost"][0], 32)
 	if err != nil {
-		log.Printf("editeventHandler: %s\n", err)
+		log.Error().Msgf("editeventHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -603,14 +597,14 @@ func putEventHandler(w http.ResponseWriter, r *http.Request, title string, user 
 
 	err = e.UpdateEvent()
 	if err != nil {
-		log.Printf("eventupdateHandler: %s\n", err)
+		log.Error().Msgf("eventupdateHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = cacheData()
 	if err != nil {
-		log.Printf("eventupdateHandler: %s\n", err)
+		log.Error().Msgf("eventupdateHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -623,7 +617,7 @@ func delEventHandler(w http.ResponseWriter, r *http.Request, title string, user 
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
-		log.Printf("deleventHandler: %s\n", err)
+		log.Error().Msgf("deleventHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -631,20 +625,20 @@ func delEventHandler(w http.ResponseWriter, r *http.Request, title string, user 
 	e := mpevent.Event{}
 	err = e.GetEventByID(int64(id))
 	if err != nil {
-		log.Printf("deleventHandler: %s\n", err)
+		log.Error().Msgf("deleventHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	err = e.DeleteEvent()
 	if err != nil {
-		log.Printf("deleventHandler: %s\n", err)
+		log.Error().Msgf("deleventHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = cacheData()
 	if err != nil {
-		log.Printf("deleventHandler: %s\n", err)
+		log.Error().Msgf("deleventHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -657,14 +651,14 @@ func postEventMessageHandler(w http.ResponseWriter, r *http.Request, title strin
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
-		log.Printf("eventmessageHandler: %s\n", err)
+		log.Error().Msgf("eventmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	err = r.ParseMultipartForm(1 << 20)
 	if err != nil {
-		log.Printf("eventmessageHandler: %s\n", err)
+		log.Error().Msgf("eventmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -674,21 +668,21 @@ func postEventMessageHandler(w http.ResponseWriter, r *http.Request, title strin
 	e := mpevent.Event{}
 	err = e.GetEventByID(int64(id))
 	if err != nil {
-		log.Printf("eventmessageHandler: %s\n", err)
+		log.Error().Msgf("eventmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = e.SendEventMessage(msg, user.ID)
 	if err != nil {
-		log.Printf("eventmessageHandler: %s\n", err)
+		log.Error().Msgf("eventmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = cacheData()
 	if err != nil {
-		log.Printf("eventmessageHandler: %s\n", err)
+		log.Error().Msgf("eventmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -701,21 +695,21 @@ func postMemberHandler(w http.ResponseWriter, r *http.Request, title string, use
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
-		log.Printf("addmemberHandler: %s\n", err)
+		log.Error().Msgf("addmemberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	err = r.ParseMultipartForm(1 << 20)
 	if err != nil {
-		log.Printf("eventmessageHandler: %s\n", err)
+		log.Error().Msgf("eventmessageHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	mid, err := strconv.Atoi(r.FormValue("newmember"))
 	if err != nil {
-		log.Printf("addmemberHandler: %s\n", err)
+		log.Error().Msgf("addmemberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -723,20 +717,20 @@ func postMemberHandler(w http.ResponseWriter, r *http.Request, title string, use
 	e := mpevent.Event{}
 	err = e.GetEventByID(int64(id))
 	if err != nil {
-		log.Printf("addmemberHandler: %s\n", err)
+		log.Error().Msgf("addmemberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	err = e.AddMember(int64(mid), false)
 	if err != nil {
-		log.Printf("addmemberHandler: %s\n", err)
+		log.Error().Msgf("addmemberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = cacheData()
 	if err != nil {
-		log.Printf("addmemberHandler: %s\n", err)
+		log.Error().Msgf("addmemberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -749,14 +743,14 @@ func putMemberJoinHandler(w http.ResponseWriter, r *http.Request, title string, 
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
-		log.Printf("eventjoinHandler: %s\n", err)
+		log.Error().Msgf("eventjoinHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 	strpid := mux.Vars(r)["pid"]
 	mid, err := strconv.Atoi(strpid)
 	if err != nil {
-		log.Printf("eventjoinHandler: %s\n", err)
+		log.Error().Msgf("eventjoinHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -764,20 +758,20 @@ func putMemberJoinHandler(w http.ResponseWriter, r *http.Request, title string, 
 	e := mpevent.Event{}
 	err = e.GetEventByID(int64(id))
 	if err != nil {
-		log.Printf("eventjoinHandler: %s\n", err)
+		log.Error().Msgf("eventjoinHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	err = e.AddMember(int64(mid), false)
 	if err != nil {
-		log.Printf("eventjoinHandler: %s\n", err)
+		log.Error().Msgf("eventjoinHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = cacheData()
 	if err != nil {
-		log.Printf("eventjoinHandler: %s\n", err)
+		log.Error().Msgf("eventjoinHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -791,13 +785,13 @@ func delMemberHandler(w http.ResponseWriter, r *http.Request, title string, user
 	strpid := mux.Vars(r)["pid"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
-		log.Printf("removememberHandler: %s\n", err)
+		log.Error().Msgf("removememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 	pid, err := strconv.Atoi(strpid)
 	if err != nil {
-		log.Printf("removememberHandler: %s\n", err)
+		log.Error().Msgf("removememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -805,20 +799,20 @@ func delMemberHandler(w http.ResponseWriter, r *http.Request, title string, user
 	e := mpevent.Event{}
 	err = e.GetEventByID(int64(id))
 	if err != nil {
-		log.Printf("removememberHandler: %s\n", err)
+		log.Error().Msgf("removememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	err = e.DeleteMember(int64(pid))
 	if err != nil {
-		log.Printf("removememberHandler: %s\n", err)
+		log.Error().Msgf("removememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = cacheData()
 	if err != nil {
-		log.Printf("removememberHandler: %s\n", err)
+		log.Error().Msgf("removememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -832,13 +826,13 @@ func putMemberPayHandler(w http.ResponseWriter, r *http.Request, title string, u
 	strpid := mux.Vars(r)["pid"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
-		log.Printf("updatememberHandler: %s\n", err)
+		log.Error().Msgf("updatememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 	pid, err := strconv.Atoi(strpid)
 	if err != nil {
-		log.Printf("updatememberHandler: %s\n", err)
+		log.Error().Msgf("updatememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -846,20 +840,20 @@ func putMemberPayHandler(w http.ResponseWriter, r *http.Request, title string, u
 	e := mpevent.Event{}
 	err = e.GetEventByID(int64(id))
 	if err != nil {
-		log.Printf("updatememberHandler: %s\n", err)
+		log.Error().Msgf("updatememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	err = e.UpdateMember(int64(pid), true)
 	if err != nil {
-		log.Printf("updatememberHandler: %s\n", err)
+		log.Error().Msgf("updatememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = cacheData()
 	if err != nil {
-		log.Printf("updatememberHandler: %s\n", err)
+		log.Error().Msgf("updatememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -873,13 +867,13 @@ func putMemberUnpayHandler(w http.ResponseWriter, r *http.Request, title string,
 	strpid := mux.Vars(r)["pid"]
 	id, err := strconv.Atoi(strid)
 	if err != nil {
-		log.Printf("updatememberHandler: %s\n", err)
+		log.Error().Msgf("updatememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
 	pid, err := strconv.Atoi(strpid)
 	if err != nil {
-		log.Printf("updatememberHandler: %s\n", err)
+		log.Error().Msgf("updatememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -887,20 +881,20 @@ func putMemberUnpayHandler(w http.ResponseWriter, r *http.Request, title string,
 	e := mpevent.Event{}
 	err = e.GetEventByID(int64(id))
 	if err != nil {
-		log.Printf("updatememberHandler: %s\n", err)
+		log.Error().Msgf("updatememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	err = e.UpdateMember(int64(pid), false)
 	if err != nil {
-		log.Printf("updatememberHandler: %s\n", err)
+		log.Error().Msgf("updatememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = cacheData()
 	if err != nil {
-		log.Printf("updatememberHandler: %s\n", err)
+		log.Error().Msgf("updatememberHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -909,13 +903,24 @@ func putMemberUnpayHandler(w http.ResponseWriter, r *http.Request, title string,
 	r.Body.Close()
 }
 
+// Game
+func gameinfoHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+	p := Page{}
+
+	p.Title = title
+	p.Roles = pagedata.Roles
+	p.User = user
+
+	renderTemplate(w, "gameinfo", &p)
+}
+
 // Scoring
 func scoresHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
 	p := Page{}
 
 	ss, err := scoring.GetAverages()
 	if err != nil {
-		log.Printf("scoresHandler: %s\n", err)
+		log.Error().Msgf("scoresHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -938,6 +943,38 @@ func scoresinfoHandler(w http.ResponseWriter, r *http.Request, title string, use
 	p.User = user
 
 	renderTemplate(w, "scoresinfo", &p)
+}
+
+// Game
+
+func gameHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+	p := Page{}
+	p = pagedata
+
+	p.User = user
+	p.Title = title
+
+	renderTemplate(w, "game", &p)
+}
+
+func gamechangeHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+	p := Page{}
+	p = pagedata
+
+	p.User = user
+	p.Title = title
+
+	renderTemplate(w, "game", &p)
+}
+
+func gamecheckinHandler(w http.ResponseWriter, r *http.Request, title string, user player.Player) {
+	p := Page{}
+	p = pagedata
+
+	p.User = user
+	p.Title = title
+
+	renderTemplate(w, "game", &p)
 }
 
 // Main
@@ -978,6 +1015,10 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 
 func sendcodeHandler(w http.ResponseWriter, r *http.Request) {
 	strid := r.FormValue("player")
+
+	if strid == "Select Your Name" {
+		http.Redirect(w, r, "/auth", http.StatusFound)
+	}
 	id, err := strconv.Atoi(strid)
 	if err != nil {
 		log.Printf("sendcodeHandler: %s\n", err)
@@ -1055,7 +1096,6 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	strid := mux.Vars(r)["id"]
 	id, err := strconv.ParseInt(strid, 10, 64)
 	if err != nil {
-		log.Printf("logoutHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -1063,15 +1103,12 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	p := player.Player{}
 	err = p.GetPlayerByID(id)
 	if err != nil {
-		log.Printf("logoutHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("logoutHandler: Removing token for %s\n", p.Name)
 	err = p.RemoveToken()
 	if err != nil {
-		log.Printf("logoutHandler: %s\n", err)
 		errorHandlerStatus(w, r, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -1103,12 +1140,12 @@ func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 		"tmpl/eventdel.html",
 		"tmpl/"+tmpl+".html")
 	if err != nil {
-		log.Printf("renderTemplate: %s\n", err)
+		log.Error().Msgf("renderTemplate: %s\n", err)
 		return
 	}
 	err = t.ExecuteTemplate(w, tmpl+".html", p)
 	if err != nil {
-		log.Printf("renderTemplate: Execute: %s\n", err)
+		log.Error().Msgf("renderTemplate: Execute: %s\n", err)
 		return
 	}
 }
@@ -1123,17 +1160,16 @@ func checkPerms(p player.Player, n string) (bool, error) {
 	return false, nil
 }
 
-var validPath = regexp.MustCompile("^/(ui|players|playeredit|playerview|updateplayer|addplayer|deleteplayer|events|editevent|addevent|delevent|addmember|addmemberedit|removemember|updatemember|games|auth|sendcode|verify|maketoken|message|sendmessage|addalluser|scores|scoresinfo)?")
+var validPath = regexp.MustCompile("^/(ui|players|playeredit|playerview|updateplayer|addplayer|deleteplayer|events|editevent|addevent|delevent|addmember|addmemberedit|removemember|updatemember|games|auth|sendcode|verify|maketoken|message|sendmessage|addalluser|scores|scoresinfo|checkin|checkins)?")
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, string, player.Player)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := validPath.FindStringSubmatch(r.URL.Path)
 		if m == nil {
-			log.Printf("makeHandler: invalid path: %s", m[1])
+			log.Error().Msgf("makeHandler: invalid path: %s", m[1])
 			http.NotFound(w, r)
 			return
 		}
-		log.Printf("Path found: %s\n", m[1])
 
 		token, err := r.Cookie("token")
 		if err != nil || token == nil {
@@ -1143,7 +1179,7 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, string, player.Play
 
 		user := player.Player{}
 		err = user.GetPlayerByToken(token.Value)
-		log.Printf("%#v\n", user)
+
 		if err != nil {
 			http.Redirect(w, r, "/auth", http.StatusFound)
 			return
@@ -1167,17 +1203,16 @@ func redirectToHTTPS() {
 			u := r.URL
 			u.Host = net.JoinHostPort("www.mplinksters.club", "443")
 			u.Scheme = "https"
-			log.Println(u.String())
 			http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
 		}),
 	}
-	log.Println(httpSrv.ListenAndServe())
+	log.Fatal().Msgf("%s", httpSrv.ListenAndServe())
 }
 
 func cacheHandler(w http.ResponseWriter, r *http.Request) {
 	err := cacheData()
 	if err != nil {
-		log.Printf("cacheHandler: %s", err)
+		log.Error().Msgf("cacheHandler: %s", err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -1187,16 +1222,16 @@ func cacheHandler(w http.ResponseWriter, r *http.Request) {
 func addAllUserHandler(w http.ResponseWriter, r *http.Request) {
 	err := player.AddRoleAll(1)
 	if err != nil {
-		log.Printf("addAllUserHandler: %s", err)
+		log.Error().Msgf("addAllUserHandler: %s", err)
 		return
 	}
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func cacheData() error {
-	log.Printf("Refreshing data cache...")
+	log.Info().Msg("Refreshing data cache...")
 
-	log.Printf("Players...")
+	log.Info().Msg("Players...")
 
 	ps, err := player.GetPlayers()
 	if err != nil {
@@ -1204,7 +1239,7 @@ func cacheData() error {
 	}
 	pagedata.Players = ps
 
-	log.Printf("Roles...")
+	log.Info().Msg("Roles...")
 
 	rs, err := role.GetRoles()
 	if err != nil {
@@ -1212,7 +1247,7 @@ func cacheData() error {
 	}
 	pagedata.Roles = rs
 
-	log.Printf("Events...")
+	log.Info().Msg("Events...")
 
 	es, err := mpevent.GetEvents()
 	if err != nil {
@@ -1220,7 +1255,28 @@ func cacheData() error {
 	}
 	pagedata.Events = es
 
-	log.Printf("Done.\n")
+	log.Info().Msg("Game...")
+
+	n := time.Now()
+	err = pagedata.Game.GetGameByDate(n)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Info().Msg("Creating game...")
+			err = pagedata.Game.Tee.GetTeeByName("White")
+			if err != nil {
+				return err
+			}
+			err = pagedata.Game.AddGame()
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Error().Err(err)
+			return err
+		}
+	}
+
+	log.Info().Msg("Done.")
 	return nil
 }
 
@@ -1241,6 +1297,9 @@ func errorHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	var err error
 	db.Con, err = db.DBConnection()
+	if err != nil {
+		log.Fatal().Msgf("Could not connect to database:  %s", err)
+	}
 	defer db.Con.Close()
 
 	listenport := getEnv("listenport", "8000")
@@ -1286,6 +1345,11 @@ func main() {
 	fr.HandleFunc("/putmemberunpay/{id}/{pid}", makeHandler(putMemberUnpayHandler)).Methods("PUT")
 	fr.HandleFunc("/delmember/{id}/{pid}", makeHandler(delMemberHandler)).Methods("DELETE")
 
+	sr.HandleFunc("/game", makeHandler(gameHandler))
+	sr.HandleFunc("/gamechange", makeHandler(gamechangeHandler))
+	fr.HandleFunc("/gameCheckin", makeHandler(gamecheckinHandler))
+	sr.HandleFunc("/gameinfo", makeHandler(gameinfoHandler))
+
 	fr.HandleFunc("/posteventmessage/{id}", makeHandler(postEventMessageHandler)).Methods("POST")
 
 	sr.HandleFunc("/scores", makeHandler(scoresHandler))
@@ -1309,10 +1373,10 @@ func main() {
 
 	err = cacheData()
 	if err != nil {
-		log.Panic(err)
+		log.Panic().Err(err)
 	}
 
-	fmt.Printf("Starting HTTP Server...")
+	log.Info().Msg("Starting HTTP Server...")
 
 	srv := &http.Server{
 		Handler:      r,
@@ -1321,7 +1385,5 @@ func main() {
 		ReadTimeout:  15 * time.Second,
 	}
 
-	fmt.Printf("Started.\n")
-
-	log.Fatal(srv.ListenAndServe())
+	log.Fatal().Err(srv.ListenAndServe())
 }

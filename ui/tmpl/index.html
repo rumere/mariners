@@ -4,6 +4,7 @@
     <body onload="showSection('{{.Title}}')">
         {{ template "menu.html" . }}
         {{ template "wait.html" . }}
+        {{ template "error.html" . }}
         <div class="uk-container uk-margin">
             <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
                 <div class="uk-navbar-left">
@@ -14,6 +15,7 @@
                         <li><span class="uk-margin-small" uk-icon="icon: calendar; ratio: {{.User.IconRatio}}" uk-tooltip="Events" onClick="showSection('events')"></span></li>
                         <li><span class="uk-margin-small" uk-icon="icon: comment; ratio: {{.User.IconRatio}}" uk-tooltip="Messages" onClick="showSection('message')"></span></li>
                         <li><span class="uk-margin-small" uk-icon="icon: file-text; ratio: {{.User.IconRatio}}" uk-tooltip="Scores" onClick="showSection('scores')"></span></li>
+                        <li><span class="uk-margin-small" uk-icon="icon: play-circle; ratio: {{.User.IconRatio}}" uk-tooltip="Game" onClick="showSection('game')"></span></li>
                     </ul>
                 </div>
                 {{ template "profilemenu.html" . }}
@@ -46,10 +48,13 @@
                         document.getElementById("focus").innerHTML =
                         this.responseText;
                         window.scrollTo(0, 0);
-                    } else {
-                        document.window.location = "/error";
+                    }
+                    
+                    if (this.readyState == 4 && this.status != 200) {
+                        UIkit.modal(document.getElementById("error")).show();
                     }
                 };
+                
                 sectionReq.open("GET", "/render/" + s, true);
                 sectionReq.send();
 

@@ -23,12 +23,15 @@ type SNSPublishAPI interface {
 
 // PublishMessage publishes a message to an Amazon Simple Notification Service (Amazon SNS) topic
 // Inputs:
-//     c is the context of the method call, which includes the Region
-//     api is the interface that defines the method call
-//     input defines the input arguments to the service call.
+//
+//	c is the context of the method call, which includes the Region
+//	api is the interface that defines the method call
+//	input defines the input arguments to the service call.
+//
 // Output:
-//     If success, a PublishOutput object containing the result of the service call and nil
-//     Otherwise, nil and an error from the call to Publish
+//
+//	If success, a PublishOutput object containing the result of the service call and nil
+//	Otherwise, nil and an error from the call to Publish
 func PublishMessage(c context.Context, api SNSPublishAPI, input *sns.PublishInput) (*sns.PublishOutput, error) {
 	return api.Publish(c, input)
 }
@@ -52,9 +55,6 @@ func SendTextPhone(msg string, phone string) (string, error) {
 		return "", err
 	}
 
-	log.Println("Message ID: " + *result.MessageId)
-	log.Printf("%#v\n", *result)
-
 	return *result.MessageId, nil
 }
 
@@ -76,9 +76,6 @@ func SendTextTopic(msg string, topicARN string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	log.Println("Message ID: " + *result.MessageId)
-	log.Printf("%#v\n", *result)
 
 	return *result.MessageId, nil
 }

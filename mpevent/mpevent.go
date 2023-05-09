@@ -56,7 +56,7 @@ func (e *Event) CreateEvent() error {
 	}
 	e.TopicArn = topicARN
 
-	query := fmt.Sprintf("INSERT INTO event (name, date, paid_event, topic_arn, description, ownerid, invite_only, cost) VALUES (\"%s\", \"%s\", %t, \"%s\", \"%s\", %d, %t, %f)",
+	query := fmt.Sprintf("INSERT INTO event (name, event_date, paid_event, topic_arn, description, ownerid, invite_only, cost) VALUES (\"%s\", \"%s\", %t, \"%s\", \"%s\", %d, %t, %f)",
 		e.Name,
 		e.Date,
 		e.PaidEvent,
@@ -89,7 +89,7 @@ func (e *Event) CreateEvent() error {
 }
 
 func (e *Event) UpdateEvent() error {
-	query := fmt.Sprintf("UPDATE event set date=\"%s\", paid_event=%t, description=\"%s\", ownerid=%d, invite_only=%t, cost=%f WHERE idevent=%d",
+	query := fmt.Sprintf("UPDATE event set event_date=\"%s\", paid_event=%t, description=\"%s\", ownerid=%d, invite_only=%t, cost=%f WHERE idevent=%d",
 		e.Date,
 		e.PaidEvent,
 		e.Description,
@@ -265,7 +265,7 @@ func (e *Event) SendEventMessage(msg string, sid int64) error {
 	m.Player = p
 	e.Messages = append(e.Messages, m)
 
-	query := fmt.Sprintf("INSERT INTO event_messages (idevent, idsender, message, date, idmessage) VALUES (%d, %d, \"%s\", \"%s\", \"\")",
+	query := fmt.Sprintf("INSERT INTO event_messages (idevent, idsender, message, message_date, idmessage) VALUES (%d, %d, \"%s\", \"%s\", \"\")",
 		e.ID,
 		m.Player.ID,
 		m.Message,
@@ -281,7 +281,7 @@ func (e *Event) SendEventMessage(msg string, sid int64) error {
 }
 
 func (e *Event) GetEventByID(id int64) error {
-	query := fmt.Sprintf("SELECT idevent, name, date, paid_event, topic_arn, description, ownerid, invite_only, cost FROM event WHERE idevent=%d", id)
+	query := fmt.Sprintf("SELECT idevent, name, event_date, paid_event, topic_arn, description, ownerid, invite_only, cost FROM event WHERE idevent=%d", id)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
@@ -338,7 +338,7 @@ func (e *Event) GetEventByID(id int64) error {
 		e.Members = append(e.Members, m)
 	}
 
-	query = fmt.Sprintf("SELECT idsender, message, date FROM event_messages WHERE idevent=%d", e.ID)
+	query = fmt.Sprintf("SELECT idsender, message, message_date FROM event_messages WHERE idevent=%d", e.ID)
 	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
 	rows, err = db.Con.QueryContext(ctx, query)
@@ -358,7 +358,7 @@ func (e *Event) GetEventByID(id int64) error {
 }
 
 func (e *Event) GetEventByName(name string) error {
-	query := fmt.Sprintf("SELECT idevent, name, date, paid_event, topic_arn, description, ownerid, invite_only, cost FROM event WHERE name=%s", name)
+	query := fmt.Sprintf("SELECT idevent, name, event_date, paid_event, topic_arn, description, ownerid, invite_only, cost FROM event WHERE name=%s", name)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
@@ -416,7 +416,7 @@ func (e *Event) GetEventByName(name string) error {
 		e.Members = append(e.Members, m)
 	}
 
-	query = fmt.Sprintf("SELECT idsender, message, date FROM event_messages WHERE idevent=%d", e.ID)
+	query = fmt.Sprintf("SELECT idsender, message, message_date FROM event_messages WHERE idevent=%d", e.ID)
 	ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
 	rows, err = db.Con.QueryContext(ctx, query)
@@ -438,7 +438,7 @@ func (e *Event) GetEventByName(name string) error {
 func GetEvents() (Events, error) {
 	es := make(Events, 0)
 
-	query := "SELECT idevent, name, date, paid_event, topic_arn, description, ownerid, invite_only, cost FROM event"
+	query := "SELECT idevent, name, event_date, paid_event, topic_arn, description, ownerid, invite_only, cost FROM event"
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
 	rows, err := db.Con.QueryContext(ctx, query)
@@ -495,7 +495,7 @@ func GetEvents() (Events, error) {
 			es[i].Members = append(es[i].Members, m)
 		}
 
-		query = fmt.Sprintf("SELECT idsender, message, date FROM event_messages WHERE idevent=%d", e.ID)
+		query = fmt.Sprintf("SELECT idsender, message, message_date FROM event_messages WHERE idevent=%d", e.ID)
 		ctx, cancelfunc = context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelfunc()
 		rows, err = db.Con.QueryContext(ctx, query)

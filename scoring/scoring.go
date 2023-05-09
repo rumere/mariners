@@ -167,13 +167,13 @@ func GetAverages() (MPAverages, error) {
 			}
 			err = avg.Player.GetPlayerByPreferredName(row[1].(string))
 			if err != nil {
-				return as, err
+				log.Printf("No name in scores spreadsheet matches \"%s\", or maybe something else: %s", row[1].(string), err)
 			}
-			avg.Average, err = strconv.ParseFloat(row[2].(string), 64)
+			avg.Average, err = strconv.ParseFloat(row[3].(string), 64)
 			if err != nil {
 				return as, err
 			}
-			avg.Last20, err = strconv.ParseFloat(row[3].(string), 64)
+			avg.Last20, err = strconv.ParseFloat(row[2].(string), 64)
 			if err != nil {
 				return as, err
 			}

@@ -1,0 +1,19 @@
+<div class="uk-card-body">
+    {{ if or (.User.HasRole "Administrator") (.User.HasRole "Game Manager") }}
+        <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+            <div class="uk-navbar-right">
+                <ul class="uk-iconnav">
+                    <li onClick="showSection('gamechange')">
+                        <span class="uk-margin-small" uk-icon="icon: plus; ratio: {{.User.IconRatio}}" uk-tooltip="Today's Game"></span>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    {{ end }}
+        <legend class="uk-legend">Today's Weather {{ .Game.Weather.Date }}</legend>
+        <div class="uk-margin" uk-grid>
+            <p>{{ printf "%#v" .Game }}</p>
+            <p><a href="{{ .Game.Weather.WeatherLink }}"><img class="uk-align-center" src="{{ .Game.Weather.WeatherIcon }}">{{ .Game.Weather.WeatherText }}</a>
+        </div>
+
+</div>

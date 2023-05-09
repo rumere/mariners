@@ -39,16 +39,12 @@ func GetTeam(id int64, t *Team) error {
 func getTeam(id int64, t *Team) error {
 	query := "SELECT idteam, idgame FROM team WHERE idteam=?"
 
-	fmt.Printf("\n\nQUERY: \n%s\n\n", query)
-
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
 	err := db.Con.QueryRowContext(ctx, query, id).Scan(&t.ID, &t.GameID)
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("%#v", t)
 
 	return nil
 }
@@ -68,12 +64,10 @@ func writeTeam(gid int64, t *Team) error {
 		return err
 	}
 
-	rows, err := res.RowsAffected()
+	_, err = res.RowsAffected()
 	if err != nil {
 		return err
 	}
-
-	fmt.Printf("Rows affected by insert: %d\n", rows)
 
 	return nil
 }

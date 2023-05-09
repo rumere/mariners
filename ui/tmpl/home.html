@@ -4,6 +4,26 @@
     <div class="uk-child-width-3-1 uk-align-center uk-grid-small" uk-grid>
         <div class="uk-card-hover uk-card uk-card-default">
             <div class="uk-card-body">
+                <div onClick="showSection('game')">
+                    <h4 class="uk-heading-bullet {{.User.TextPreference}}">Today's Game</h4>
+                    <p class="{{.User.TextPreference}}">The game page <span uk-icon="icon: play-circle; ratio: {{.User.IconRatio}}"></span> shows information about today's game anmd allows players to check-in.</p>
+                </div>
+            </div>
+            <div class="uk-card-footer">
+                <nav class="uk-navbar-container uk-navbar-transparent" uk-navbar>
+                    <div class="uk-navbar-right">
+                        <ul class="uk-iconnav">
+                            <li onClick="showSection('gameinfo')">
+                                <p class="{{.User.TextPreference}}" class="uk-text-muted">More Info
+                                <span class="uk-margin-small" uk-icon="icon: question; ratio: {{.User.IconRatio}}" uk-tooltip="Game Help"></span></p>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+        </div>
+        <div class="uk-card-hover uk-card uk-card-default">
+            <div class="uk-card-body">
                 <div onClick="showSection('players')">
                     <h4 class="uk-heading-bullet {{.User.TextPreference}}">Players</h4>
                     <p class="{{.User.TextPreference}}">The players page <span uk-icon="icon: users; ratio: {{.User.IconRatio}}"></span> lists the people who are active within our group.</p>
