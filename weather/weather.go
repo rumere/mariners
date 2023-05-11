@@ -400,7 +400,7 @@ import (
 	Link       string `json:"Link"`
 }*/
 
-type weatherapi struct {
+/* type weatherapi struct {
 	Location struct {
 		Name           string  `json:"name"`
 		Region         string  `json:"region"`
@@ -440,9 +440,9 @@ type weatherapi struct {
 		GustMph    float64 `json:"gust_mph"`
 		GustKph    float64 `json:"gust_kph"`
 	} `json:"current"`
-}
+} */
 
-/* type weatherapihour struct {
+type weatherapihour struct {
 	Location struct {
 		Name           string  `json:"name"`
 		Region         string  `json:"region"`
@@ -563,7 +563,7 @@ type weatherapi struct {
 			} `json:"hour"`
 		} `json:"forecastday"`
 	} `json:"forecast"`
-} */
+}
 
 type Weather struct {
 	ID            int64   `json:"id"`
@@ -581,53 +581,60 @@ type Weather struct {
 	WeatherLink   string  `json:"weather_link"`
 }
 
-func (w *Weather) AddWeather() error {
-	wa := weatherapi{}
-	err := wa.getWeatherAPI()
-	if err != nil {
-		return err
-	}
+type WeatherHours []Weather
 
-	w.Date = wa.Location.Localtime
-	w.Temperature = int64(math.Round(wa.Current.TempF))
-	w.FeelsLike = int64(math.Round(wa.Current.FeelslikeF))
-	w.Wind = wa.Current.WindMph
-	w.WindGust = wa.Current.GustMph
-	w.WindDirection = wa.Current.WindDir
-	w.Humidity = int64(wa.Current.Humidity)
-	w.CloudCover = int64(wa.Current.Cloud)
-	w.WeatherText = wa.Current.Condition.Text
-	u, err := url.Parse("https:" + wa.Current.Condition.Icon)
-	if err != nil {
-		return err
-	}
-	w.WeatherIcon = "static/img" + u.Path
-	w.WeatherLink = "https://weather.com/"
+func (w WeatherHours) AddWeather() error {
+	wa := weatherapihour{}
+	hours := [4]int64{12, 13, 14, 15}
 
-	query := fmt.Sprintf("INSERT INTO weather VALUES (NULL, \"%s\", %d, %d, %.2f, %.1f, %.1f, \"%s\", %d, %d, \"%s\", \"%s\", \"%s\")",
-		w.Date,
-		w.Temperature,
-		w.FeelsLike,
-		w.Precipitation,
-		w.Wind,
-		w.WindGust,
-		w.WindDirection,
-		w.Humidity,
-		w.CloudCover,
-		w.WeatherText,
-		w.WeatherIcon,
-		w.WeatherLink)
+	for i, h := range hours {
+		err := wa.getWeatherAPI(h)
+		if err != nil {
+			return err
+		}
 
-	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelfunc()
-	res, err := db.Con.ExecContext(ctx, query)
-	if err != nil {
-		return err
-	}
+		w[i].Date = wa.Forecast.Forecastday[0].Hour[0].Time
+		w[i].Temperature = int64(math.Round(wa.Forecast.Forecastday[0].Hour[0].TempF))
+		w[i].FeelsLike = int64(math.Round(wa.Forecast.Forecastday[0].Hour[0].FeelslikeF))
+		w[i].Precipitation = float64(wa.Forecast.Forecastday[0].Hour[0].PrecipIn)
+		w[i].Wind = wa.Forecast.Forecastday[0].Hour[0].WindMph
+		w[i].WindGust = wa.Forecast.Forecastday[0].Hour[0].GustMph
+		w[i].WindDirection = wa.Forecast.Forecastday[0].Hour[0].WindDir
+		w[i].Humidity = int64(wa.Forecast.Forecastday[0].Hour[0].Humidity)
+		w[i].CloudCover = int64(wa.Forecast.Forecastday[0].Hour[0].Cloud)
+		w[i].WeatherText = wa.Forecast.Forecastday[0].Hour[0].Condition.Text
+		u, err := url.Parse("https:" + wa.Forecast.Forecastday[0].Hour[0].Condition.Icon)
+		if err != nil {
+			return err
+		}
+		w[i].WeatherIcon = "static/img" + u.Path
+		w[i].WeatherLink = "https://weather.com/"
 
-	w.ID, err = res.LastInsertId()
-	if err != nil {
-		return err
+		query := fmt.Sprintf("INSERT INTO weather VALUES (NULL, \"%s\", %d, %d, %.2f, %.1f, %.1f, \"%s\", %d, %d, \"%s\", \"%s\", \"%s\")",
+			w[i].Date,
+			w[i].Temperature,
+			w[i].FeelsLike,
+			w[i].Precipitation,
+			w[i].Wind,
+			w[i].WindGust,
+			w[i].WindDirection,
+			w[i].Humidity,
+			w[i].CloudCover,
+			w[i].WeatherText,
+			w[i].WeatherIcon,
+			w[i].WeatherLink)
+
+		ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancelfunc()
+		res, err := db.Con.ExecContext(ctx, query)
+		if err != nil {
+			return err
+		}
+
+		w[i].ID, err = res.LastInsertId()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -673,13 +680,14 @@ func (w *Weather) GetWeatherByID() error {
 	return nil
 }
 
-func (w *Weather) GetWeatherByDate(d string) error {
+func (ws WeatherHours) GetWeatherByDate(d string) error {
 	t, err := time.Parse("2006-01-02", d)
 	if err != nil {
 		return err
 	}
-	s := fmt.Sprintf("\"%d-%d-%d 00:00:00\"", t.Year(), t.Month(), t.Day())
-	f := fmt.Sprintf("\"%d-%d-%d 23:59:59\"", t.Year(), t.Month(), t.Day())
+
+	s := fmt.Sprintf("%d-%d-%d 00:00:00", t.Year(), t.Month(), t.Day())
+	f := fmt.Sprintf("%d-%d-%d 23:59:59", t.Year(), t.Month(), t.Day())
 	query := fmt.Sprintf(
 		"SELECT "+
 			"idweather, "+
@@ -695,25 +703,36 @@ func (w *Weather) GetWeatherByDate(d string) error {
 			"weather_text "+
 			"weather_icon "+
 			"FROM weather WHERE "+
-			"date>=%s AND date<=%s",
+			"date>='%s' AND date<='%s'",
 		s, f)
+
+	fmt.Println(query)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
-
-	err = db.Con.QueryRowContext(ctx, query).Scan(
-		&w.ID,
-		&w.Date,
-		&w.Temperature,
-		&w.FeelsLike,
-		&w.Precipitation,
-		&w.Wind,
-		&w.WindGust,
-		&w.WindDirection,
-		&w.Humidity,
-		&w.CloudCover)
+	rows, err := db.Con.QueryContext(ctx, query)
 	if err != nil {
 		return err
+	}
+
+	for rows.Next() {
+		var w Weather
+		err = db.Con.QueryRowContext(ctx, query).Scan(
+			&w.ID,
+			&w.Date,
+			&w.Temperature,
+			&w.FeelsLike,
+			&w.Precipitation,
+			&w.Wind,
+			&w.WindGust,
+			&w.WindDirection,
+			&w.Humidity,
+			&w.CloudCover)
+		if err != nil {
+			return err
+		}
+
+		ws = append(ws, w)
 	}
 
 	return nil
@@ -740,8 +759,9 @@ func (w *Weather) GetWeatherByDate(d string) error {
 	return nil
 } */
 
-func (wa *weatherapi) getWeatherAPI() error {
-	resp, err := http.Get("http://api.weatherapi.com/v1/current.json?key=a59ece49937045878a8175453230605&q=37.57,-122.28")
+func (wa *weatherapihour) getWeatherAPI(h int64) error {
+	url := fmt.Sprintf("http://api.weatherapi.com/v1/forecast.json?days=1&key=a59ece49937045878a8175453230605&q=37.57,-122.28&hour=%d", h)
+	resp, err := http.Get(url)
 	if err != nil {
 		return err
 	}

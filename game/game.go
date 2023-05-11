@@ -10,12 +10,10 @@ import (
 	"mariners/weather"
 	"regexp"
 	"time"
-
-	"github.com/rs/zerolog/log"
 )
 
 type Game struct {
-	Weather weather.Weather
+	Weather weather.WeatherHours
 	Tee     tee.Tee
 	ID      int64  `json:"id"`
 	Date    string `json:"date"`
@@ -46,8 +44,7 @@ func (g *Game) AddGame() error {
 	t := time.Now().In(loc)
 	g.Date = t.Format("2006-01-02")
 
-	query := fmt.Sprintf("INSERT INTO game (idgame, idweather, game_date, idninthtee, ismatch) VALUES (NULL, %d, \"%s\", %d, %t);\n",
-		g.Weather.ID,
+	query := fmt.Sprintf("INSERT INTO game (idgame, game_date, idninthtee, ismatch) VALUES (NULL, \"%s\", %d, %t);\n",
 		g.Date,
 		g.Tee.ID,
 		g.IsMatch)
@@ -60,6 +57,11 @@ func (g *Game) AddGame() error {
 	}
 
 	g.ID, err = res.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	err = g.Weather.GetWeatherByDate(g.Date)
 	if err != nil {
 		return err
 	}
@@ -88,13 +90,12 @@ func (g *Game) UpdateGame() error {
 }
 
 func (g *Game) GetGameByID(id int64) error {
-	query := "SELECT idgame, idweather, game_date, idninthtee, ismatch FROM game WHERE idgame=?"
+	query := "SELECT idgame, game_date, idninthtee, ismatch FROM game WHERE idgame=?"
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
 	err := db.Con.QueryRowContext(ctx, query, id).Scan(
 		&g.ID,
-		&g.Weather.ID,
 		&g.Date,
 		&g.Tee.ID,
 		&g.IsMatch)
@@ -107,11 +108,9 @@ func (g *Game) GetGameByID(id int64) error {
 
 func (g *Game) GetGameByDate(t time.Time) error {
 	d := fmt.Sprintf("%d-%d-%d", t.Year(), t.Month(), t.Day())
-	log.Info().Msgf("Looking for Game on %s", d)
 	query := fmt.Sprintf(
 		"SELECT "+
 			"idgame, "+
-			"idweather, "+
 			"game_date, "+
 			"idninthtee, "+
 			"ismatch "+
@@ -119,23 +118,18 @@ func (g *Game) GetGameByDate(t time.Time) error {
 			"game_date='%s'",
 		d)
 
-	log.Debug().Msgf("Query: %s", query)
-
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
 	err := db.Con.QueryRowContext(ctx, query).Scan(
 		&g.ID,
-		&g.Weather.ID,
 		&g.Date,
 		&g.Tee.ID,
 		&g.IsMatch)
 
-	log.Debug().Msgf("Error: %s", err)
-
 	if err != nil {
 		return err
 	} else {
-		err = g.Weather.GetWeatherByID()
+		err = g.Weather.GetWeatherByDate(g.Date)
 		if err != nil {
 			return err
 		}
@@ -170,7 +164,6 @@ func GetGames() (Games, error) {
 		var g Game
 		err := rows.Scan(
 			&g.ID,
-			&g.Weather.ID,
 			&g.Date,
 			&g.Tee.ID,
 			&g.IsMatch)
@@ -195,7 +188,15 @@ func GetGames() (Games, error) {
 			}
 		}
 
-		g.GetCheckinsByDate(t)
+		err = g.GetCheckinsByDate(t)
+		if err != nil {
+			return nil, err
+		}
+
+		err = g.Weather.GetWeatherByDate(g.Date)
+		if err != nil {
+			return nil, err
+		}
 
 		gs = append(gs, g)
 	}

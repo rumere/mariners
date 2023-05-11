@@ -10,10 +10,28 @@
             </div>
         </nav>
     {{ end }}
-        <legend class="uk-legend">Today's Weather {{ .Game.Weather.Date }}</legend>
-        <div class="uk-margin" uk-grid>
-            <p>{{ printf "%#v" .Game }}</p>
-            <p><a href="{{ .Game.Weather.WeatherLink }}"><img class="uk-align-center" src="{{ .Game.Weather.WeatherIcon }}">{{ .Game.Weather.WeatherText }}</a>
-        </div>
-
+    {{printf "%#v" .Game.Weather}}
+    <table class="uk-table uk-table-middle uk-table-justify uk-table-hover uk-table-divider ">
+        <label class="uk-margin-small-top {{.User.TextPreference}}">Today's Game</label>
+        <thead>
+            <tr>
+                <th><<p class="{{$.User.TextPreference}}">Temp</p></td>
+                <th><<p class="{{$.User.TextPreference}}">Wind</p></td>
+                <th><<p class="{{$.User.TextPreference}}">Gust</p></td>
+                <th><<p class="{{$.User.TextPreference}}">Dir</p></td>
+                <th><<p class="{{$.User.TextPreference}}">Precip</p></td>
+            </tr>
+        </thead>
+        <tbody>
+            {{range $weather := .Game.Weather }}
+                    <tr>
+                        <td><p class="{{$.User.TextPreference}}">{{printf "%s" $weather.Temperature}}</p></td>
+                        <td><p class="{{$.User.TextPreference}}">{{printf "%s" $weather.Wind}}</p></td>
+                        <td><p class="{{$.User.TextPreference}}">{{printf "%s" $weather.WindGust}}</p></td>
+                        <td><p class="{{$.User.TextPreference}}">{{printf "%s" $weather.WindDir}}</p></td>
+                        <td><p class="{{$.User.TextPreference}}">{{printf "%s" $weather.Precipitation}}</p></td>
+                    </tr>
+            {{end}}
+        </tbody>
+    </table>
 </div>
