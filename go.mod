@@ -9,6 +9,7 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
+	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/nyaruka/phonenumbers v1.0.74
 	github.com/rs/zerolog v1.29.1
 	google.golang.org/api v0.71.0

@@ -910,6 +910,8 @@ func gameinfoHandler(w http.ResponseWriter, r *http.Request, title string, user 
 	p.Title = title
 	p.Roles = pagedata.Roles
 	p.User = user
+	p.Game = pagedata.Game
+	p.Players = pagedata.Players
 
 	renderTemplate(w, "gameinfo", &p)
 }
@@ -1258,15 +1260,16 @@ func cacheData() error {
 	log.Info().Msg("Game...")
 
 	n := time.Now()
-	err = pagedata.Game.GetGameByDate(n)
+	g, err := game.GetGameByDate(n)
 	if err != nil {
+		log.Info().Err(err)
 		if err == sql.ErrNoRows {
 			log.Info().Msg("Creating game...")
-			err = pagedata.Game.Tee.GetTeeByName("White")
+			err = g.Tee.GetTeeByName("White")
 			if err != nil {
 				return err
 			}
-			err = pagedata.Game.AddGame()
+			err = g.AddGame()
 			if err != nil {
 				return err
 			}
@@ -1275,6 +1278,7 @@ func cacheData() error {
 			return err
 		}
 	}
+	pagedata.Game = g
 
 	log.Info().Msg("Done.")
 	return nil

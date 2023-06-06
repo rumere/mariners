@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"mariners/player"
 	"mariners/team"
 	"strconv"
@@ -15,6 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
+
+	"github.com/rs/zerolog/log"
 )
 
 type Score struct {
@@ -61,28 +62,28 @@ func getSecret() string {
 			switch aerr.Code() {
 			case secretsmanager.ErrCodeDecryptionFailure:
 				// Secrets Manager can't decrypt the protected secret text using the provided KMS key.
-				fmt.Println(secretsmanager.ErrCodeDecryptionFailure, aerr.Error())
+				log.Error().Msgf("%s: %s", secretsmanager.ErrCodeDecryptionFailure, aerr.Error())
 
 			case secretsmanager.ErrCodeInternalServiceError:
 				// An error occurred on the server side.
-				fmt.Println(secretsmanager.ErrCodeInternalServiceError, aerr.Error())
+				log.Error().Msgf("%s: %s", secretsmanager.ErrCodeInternalServiceError, aerr.Error())
 
 			case secretsmanager.ErrCodeInvalidParameterException:
 				// You provided an invalid value for a parameter.
-				fmt.Println(secretsmanager.ErrCodeInvalidParameterException, aerr.Error())
+				log.Error().Msgf("%s: %s", secretsmanager.ErrCodeInvalidParameterException, aerr.Error())
 
 			case secretsmanager.ErrCodeInvalidRequestException:
 				// You provided a parameter value that is not valid for the current state of the resource.
-				fmt.Println(secretsmanager.ErrCodeInvalidRequestException, aerr.Error())
+				log.Error().Msgf("%s: %s", secretsmanager.ErrCodeInvalidRequestException, aerr.Error())
 
 			case secretsmanager.ErrCodeResourceNotFoundException:
 				// We can't find the resource that you asked for.
-				fmt.Println(secretsmanager.ErrCodeResourceNotFoundException, aerr.Error())
+				log.Error().Msgf("%s: %s", secretsmanager.ErrCodeResourceNotFoundException, aerr.Error())
 			}
 		} else {
 			// Print the error, cast err to awserr.Error to get the Code and
 			// Message from an error.
-			fmt.Println(err.Error())
+			log.Error().Msg(err.Error())
 		}
 		return ""
 	}
@@ -97,7 +98,6 @@ func getSecret() string {
 	}
 
 	k := apiKey{}
-	log.Println(secretString)
 	err = json.Unmarshal([]byte(secretString), &k)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -118,11 +118,11 @@ func (mp *MPAverage) GetAverage() error {
 
 	resp, err := srv.Spreadsheets.Values.Get(sheetId, readRange).Do()
 	if err != nil {
-		log.Fatalf("Unable to retrieve data from sheet: %v", err)
+		log.Error().Msgf("Unable to retrieve data from sheet: %v", err)
 	}
 
 	if len(resp.Values) == 0 {
-		fmt.Println("No data found.")
+		log.Error().Msg("No data found.")
 	} else {
 		for _, row := range resp.Values {
 			if row[1] == mp.Player.PreferredName {
@@ -151,12 +151,12 @@ func GetAverages() (MPAverages, error) {
 
 	resp, err := srv.Spreadsheets.Values.Get(sheetId, readRange).Do()
 	if err != nil {
-		log.Fatalf("Unable to retrieve data from sheet: %v", err)
+		log.Error().Msgf("Unable to retrieve data from sheet: %v", err)
 		return as, err
 	}
 
 	if len(resp.Values) == 0 {
-		fmt.Println("No data found.")
+		log.Error().Msg("No data found.")
 		return as, err
 	} else {
 		for _, row := range resp.Values {
@@ -167,7 +167,7 @@ func GetAverages() (MPAverages, error) {
 			}
 			err = avg.Player.GetPlayerByPreferredName(row[1].(string))
 			if err != nil {
-				log.Printf("No name in scores spreadsheet matches \"%s\", or maybe something else: %s", row[1].(string), err)
+				log.Error().Msgf("No name in scores spreadsheet matches \"%s\", or maybe something else: %s", row[1].(string), err)
 			}
 			avg.Average, err = strconv.ParseFloat(row[3].(string), 64)
 			if err != nil {

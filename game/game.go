@@ -10,6 +10,8 @@ import (
 	"mariners/weather"
 	"regexp"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type Game struct {
@@ -32,9 +34,14 @@ type Checkin struct {
 type Checkins []Checkin
 
 func (g *Game) AddGame() error {
-	err := g.Weather.AddWeather()
+	w, err := weather.AddWeather()
 	if err != nil {
 		return err
+	}
+	g.Weather = w
+
+	for _, id := range g.Weather {
+		log.Info().Msgf("Game has weather ID %d", id)
 	}
 
 	loc, err := time.LoadLocation("America/Los_Angeles")
@@ -57,11 +64,6 @@ func (g *Game) AddGame() error {
 	}
 
 	g.ID, err = res.LastInsertId()
-	if err != nil {
-		return err
-	}
-
-	err = g.Weather.GetWeatherByDate(g.Date)
 	if err != nil {
 		return err
 	}
@@ -106,8 +108,10 @@ func (g *Game) GetGameByID(id int64) error {
 	return nil
 }
 
-func (g *Game) GetGameByDate(t time.Time) error {
-	d := fmt.Sprintf("%d-%d-%d", t.Year(), t.Month(), t.Day())
+func GetGameByDate(t time.Time) (Game, error) {
+	g := Game{}
+	d := fmt.Sprintf("%d-%02d-%02d 00:00", t.Year(), t.Month(), t.Day())
+	e := fmt.Sprintf("%d-%02d-%02d 23:59", t.Year(), t.Month(), t.Day())
 	query := fmt.Sprintf(
 		"SELECT "+
 			"idgame, "+
@@ -115,8 +119,8 @@ func (g *Game) GetGameByDate(t time.Time) error {
 			"idninthtee, "+
 			"ismatch "+
 			"FROM game WHERE "+
-			"game_date='%s'",
-		d)
+			"UNIXEPOCH(game_date) BETWEEN UNIXEPOCH('%s') AND UNIXEPOCH('%s')",
+		d, e)
 
 	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelfunc()
@@ -127,20 +131,27 @@ func (g *Game) GetGameByDate(t time.Time) error {
 		&g.IsMatch)
 
 	if err != nil {
-		return err
+		return g, err
 	} else {
-		err = g.Weather.GetWeatherByDate(g.Date)
+		w, err := weather.GetWeatherByDate(g.Date)
 		if err != nil {
-			return err
+			return g, err
+		}
+		log.Info().Msgf("%#v", w)
+		g.Weather = w
+
+		err = g.Tee.GetTeeByID(g.Tee.ID)
+		if err != nil {
+			return g, err
 		}
 
 		err = g.GetCheckinsByDate(t)
 		if err != nil && err != sql.ErrNoRows {
-			return err
+			return g, err
 		}
 	}
 
-	return nil
+	return g, nil
 }
 
 func GetGames() (Games, error) {
@@ -193,7 +204,7 @@ func GetGames() (Games, error) {
 			return nil, err
 		}
 
-		err = g.Weather.GetWeatherByDate(g.Date)
+		g.Weather, err = weather.GetWeatherByDate(g.Date)
 		if err != nil {
 			return nil, err
 		}

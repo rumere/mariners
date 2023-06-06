@@ -18,6 +18,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
@@ -132,29 +134,32 @@ func DBConnection() (*sql.DB, error) {
 
 	log.Info().Msg("Connecting to DB...")
 
-	if dblocation == "AWS" {
+	switch dblocation {
+	case "AWS":
 		log.Info().Msg("Using AWS DB...")
 		db, err = sql.Open("mysql", getDSNAWS())
-		if err != nil {
-			return nil, err
-		}
-	} else {
+	case "LOCAL":
 		log.Info().Msg("Using Local DB...")
 		db, err = sql.Open("mysql", getDSNEnv())
+	case "SQLITE":
+		log.Info().Msg("Using sqlite3 DB...")
+		db, err = sql.Open("sqlite3", "../db/mplinksters.db")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if dblocation != "SQLITE" {
+		db.SetMaxOpenConns(64)
+		db.SetMaxIdleConns(64)
+		db.SetConnMaxLifetime(time.Minute)
+
+		ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancelfunc()
+		err = db.PingContext(ctx)
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	db.SetMaxOpenConns(64)
-	db.SetMaxIdleConns(64)
-	db.SetConnMaxLifetime(time.Minute)
-
-	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelfunc()
-	err = db.PingContext(ctx)
-	if err != nil {
-		return nil, err
 	}
 
 	log.Info().Msg("Connected.")

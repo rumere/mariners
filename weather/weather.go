@@ -16,6 +16,8 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+
+	"github.com/rs/zerolog/log"
 )
 
 // accuWeather is a []struct that can store the unmarshalled results of the accuweather current conditions API
@@ -456,7 +458,7 @@ type weatherapihour struct {
 	Current struct {
 		LastUpdatedEpoch int     `json:"last_updated_epoch"`
 		LastUpdated      string  `json:"last_updated"`
-		TempC            int     `json:"temp_c"`
+		TempC            float64 `json:"temp_c"`
 		TempF            float64 `json:"temp_f"`
 		IsDay            int     `json:"is_day"`
 		Condition        struct {
@@ -468,17 +470,17 @@ type weatherapihour struct {
 		WindKph    float64 `json:"wind_kph"`
 		WindDegree int     `json:"wind_degree"`
 		WindDir    string  `json:"wind_dir"`
-		PressureMb int     `json:"pressure_mb"`
+		PressureMb float64 `json:"pressure_mb"`
 		PressureIn float64 `json:"pressure_in"`
-		PrecipMm   int     `json:"precip_mm"`
-		PrecipIn   int     `json:"precip_in"`
-		Humidity   int     `json:"humidity"`
+		PrecipMm   float64 `json:"precip_mm"`
+		PrecipIn   float64 `json:"precip_in"`
+		Humidity   float64 `json:"humidity"`
 		Cloud      int     `json:"cloud"`
-		FeelslikeC int     `json:"feelslike_c"`
+		FeelslikeC float64 `json:"feelslike_c"`
 		FeelslikeF float64 `json:"feelslike_f"`
-		VisKm      int     `json:"vis_km"`
-		VisMiles   int     `json:"vis_miles"`
-		Uv         int     `json:"uv"`
+		VisKm      float64 `json:"vis_km"`
+		VisMiles   float64 `json:"vis_miles"`
+		Uv         float64 `json:"uv"`
 		GustMph    float64 `json:"gust_mph"`
 		GustKph    float64 `json:"gust_kph"`
 	} `json:"current"`
@@ -487,20 +489,20 @@ type weatherapihour struct {
 			Date      string `json:"date"`
 			DateEpoch int    `json:"date_epoch"`
 			Day       struct {
-				MaxtempC          int     `json:"maxtemp_c"`
+				MaxtempC          float64 `json:"maxtemp_c"`
 				MaxtempF          float64 `json:"maxtemp_f"`
 				MintempC          float64 `json:"mintemp_c"`
-				MintempF          int     `json:"mintemp_f"`
+				MintempF          float64 `json:"mintemp_f"`
 				AvgtempC          float64 `json:"avgtemp_c"`
 				AvgtempF          float64 `json:"avgtemp_f"`
 				MaxwindMph        float64 `json:"maxwind_mph"`
 				MaxwindKph        float64 `json:"maxwind_kph"`
 				TotalprecipMm     float64 `json:"totalprecip_mm"`
 				TotalprecipIn     float64 `json:"totalprecip_in"`
-				TotalsnowCm       int     `json:"totalsnow_cm"`
+				TotalsnowCm       float64 `json:"totalsnow_cm"`
 				AvgvisKm          float64 `json:"avgvis_km"`
-				AvgvisMiles       int     `json:"avgvis_miles"`
-				Avghumidity       int     `json:"avghumidity"`
+				AvgvisMiles       float64 `json:"avgvis_miles"`
+				Avghumidity       float64 `json:"avghumidity"`
 				DailyWillItRain   int     `json:"daily_will_it_rain"`
 				DailyChanceOfRain int     `json:"daily_chance_of_rain"`
 				DailyWillItSnow   int     `json:"daily_will_it_snow"`
@@ -510,7 +512,7 @@ type weatherapihour struct {
 					Icon string `json:"icon"`
 					Code int    `json:"code"`
 				} `json:"condition"`
-				Uv int `json:"uv"`
+				Uv float64 `json:"uv"`
 			} `json:"day"`
 			Astro struct {
 				Sunrise          string `json:"sunrise"`
@@ -535,13 +537,13 @@ type weatherapihour struct {
 				} `json:"condition"`
 				WindMph      float64 `json:"wind_mph"`
 				WindKph      float64 `json:"wind_kph"`
-				WindDegree   int     `json:"wind_degree"`
+				WindDegree   float64 `json:"wind_degree"`
 				WindDir      string  `json:"wind_dir"`
-				PressureMb   int     `json:"pressure_mb"`
+				PressureMb   float64 `json:"pressure_mb"`
 				PressureIn   float64 `json:"pressure_in"`
-				PrecipMm     int     `json:"precip_mm"`
-				PrecipIn     int     `json:"precip_in"`
-				Humidity     int     `json:"humidity"`
+				PrecipMm     float64 `json:"precip_mm"`
+				PrecipIn     float64 `json:"precip_in"`
+				Humidity     float64 `json:"humidity"`
 				Cloud        int     `json:"cloud"`
 				FeelslikeC   float64 `json:"feelslike_c"`
 				FeelslikeF   float64 `json:"feelslike_f"`
@@ -555,11 +557,11 @@ type weatherapihour struct {
 				ChanceOfRain int     `json:"chance_of_rain"`
 				WillItSnow   int     `json:"will_it_snow"`
 				ChanceOfSnow int     `json:"chance_of_snow"`
-				VisKm        int     `json:"vis_km"`
-				VisMiles     int     `json:"vis_miles"`
+				VisKm        float64 `json:"vis_km"`
+				VisMiles     float64 `json:"vis_miles"`
 				GustMph      float64 `json:"gust_mph"`
-				GustKph      int     `json:"gust_kph"`
-				Uv           int     `json:"uv"`
+				GustKph      float64 `json:"gust_kph"`
+				Uv           float64 `json:"uv"`
 			} `json:"hour"`
 		} `json:"forecastday"`
 	} `json:"forecast"`
@@ -583,32 +585,36 @@ type Weather struct {
 
 type WeatherHours []Weather
 
-func (w WeatherHours) AddWeather() error {
-	wa := weatherapihour{}
+func AddWeather() (WeatherHours, error) {
+	w := make(WeatherHours, 0)
 	hours := [4]int64{12, 13, 14, 15}
 
 	for i, h := range hours {
+		var wh Weather
+		var wa weatherapihour
 		err := wa.getWeatherAPI(h)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		w[i].Date = wa.Forecast.Forecastday[0].Hour[0].Time
-		w[i].Temperature = int64(math.Round(wa.Forecast.Forecastday[0].Hour[0].TempF))
-		w[i].FeelsLike = int64(math.Round(wa.Forecast.Forecastday[0].Hour[0].FeelslikeF))
-		w[i].Precipitation = float64(wa.Forecast.Forecastday[0].Hour[0].PrecipIn)
-		w[i].Wind = wa.Forecast.Forecastday[0].Hour[0].WindMph
-		w[i].WindGust = wa.Forecast.Forecastday[0].Hour[0].GustMph
-		w[i].WindDirection = wa.Forecast.Forecastday[0].Hour[0].WindDir
-		w[i].Humidity = int64(wa.Forecast.Forecastday[0].Hour[0].Humidity)
-		w[i].CloudCover = int64(wa.Forecast.Forecastday[0].Hour[0].Cloud)
-		w[i].WeatherText = wa.Forecast.Forecastday[0].Hour[0].Condition.Text
+		wh.Date = wa.Forecast.Forecastday[0].Hour[0].Time
+		wh.Temperature = int64(math.Round(wa.Forecast.Forecastday[0].Hour[0].TempF))
+		wh.FeelsLike = int64(math.Round(wa.Forecast.Forecastday[0].Hour[0].FeelslikeF))
+		wh.Precipitation = float64(wa.Forecast.Forecastday[0].Hour[0].PrecipIn)
+		wh.Wind = wa.Forecast.Forecastday[0].Hour[0].WindMph
+		wh.WindGust = wa.Forecast.Forecastday[0].Hour[0].GustMph
+		wh.WindDirection = wa.Forecast.Forecastday[0].Hour[0].WindDir
+		wh.Humidity = int64(wa.Forecast.Forecastday[0].Hour[0].Humidity)
+		wh.CloudCover = int64(wa.Forecast.Forecastday[0].Hour[0].Cloud)
+		wh.WeatherText = wa.Forecast.Forecastday[0].Hour[0].Condition.Text
 		u, err := url.Parse("https:" + wa.Forecast.Forecastday[0].Hour[0].Condition.Icon)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		w[i].WeatherIcon = "static/img" + u.Path
-		w[i].WeatherLink = "https://weather.com/"
+		wh.WeatherIcon = "static/img" + u.Path
+		wh.WeatherLink = "https://weather.com/"
+
+		w = append(w, wh)
 
 		query := fmt.Sprintf("INSERT INTO weather VALUES (NULL, \"%s\", %d, %d, %.2f, %.1f, %.1f, \"%s\", %d, %d, \"%s\", \"%s\", \"%s\")",
 			w[i].Date,
@@ -628,16 +634,18 @@ func (w WeatherHours) AddWeather() error {
 		defer cancelfunc()
 		res, err := db.Con.ExecContext(ctx, query)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		w[i].ID, err = res.LastInsertId()
 		if err != nil {
-			return err
+			return nil, err
 		}
+
+		log.Info().Msgf("weather ID %d inserted", w[i].ID)
 	}
 
-	return nil
+	return w, nil
 }
 
 func (w *Weather) GetWeatherByID() error {
@@ -680,18 +688,19 @@ func (w *Weather) GetWeatherByID() error {
 	return nil
 }
 
-func (ws WeatherHours) GetWeatherByDate(d string) error {
+func GetWeatherByDate(d string) (WeatherHours, error) {
+	ws := make(WeatherHours, 0)
 	t, err := time.Parse("2006-01-02", d)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	s := fmt.Sprintf("%d-%d-%d 00:00:00", t.Year(), t.Month(), t.Day())
-	f := fmt.Sprintf("%d-%d-%d 23:59:59", t.Year(), t.Month(), t.Day())
+	s := fmt.Sprintf("%d-%02d-%02d 00:00", t.Year(), t.Month(), t.Day())
+	f := fmt.Sprintf("%d-%02d-%02d 23:59", t.Year(), t.Month(), t.Day())
 	query := fmt.Sprintf(
 		"SELECT "+
 			"idweather, "+
-			"date, "+
+			"weather_date, "+
 			"temperature, "+
 			"feels_like, "+
 			"precipitation, "+
@@ -699,11 +708,11 @@ func (ws WeatherHours) GetWeatherByDate(d string) error {
 			"wind_gust, "+
 			"wind_direction, "+
 			"humidity, "+
-			"cloudcover "+
-			"weather_text "+
+			"cloudcover, "+
+			"weather_text, "+
 			"weather_icon "+
 			"FROM weather WHERE "+
-			"date>='%s' AND date<='%s'",
+			"UNIXEPOCH(weather_date) BETWEEN UNIXEPOCH('%s') AND UNIXEPOCH('%s')",
 		s, f)
 
 	fmt.Println(query)
@@ -712,7 +721,7 @@ func (ws WeatherHours) GetWeatherByDate(d string) error {
 	defer cancelfunc()
 	rows, err := db.Con.QueryContext(ctx, query)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for rows.Next() {
@@ -729,13 +738,13 @@ func (ws WeatherHours) GetWeatherByDate(d string) error {
 			&w.Humidity,
 			&w.CloudCover)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		ws = append(ws, w)
 	}
 
-	return nil
+	return ws, nil
 }
 
 /* func (aw *accuWeather) getAccuWeather() error {
